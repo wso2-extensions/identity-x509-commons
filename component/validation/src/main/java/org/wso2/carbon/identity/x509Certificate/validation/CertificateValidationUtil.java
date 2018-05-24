@@ -28,9 +28,8 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ByteArrayEntity;
-import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.DERIA5String;
@@ -54,16 +53,9 @@ import org.bouncycastle.cert.ocsp.OCSPReq;
 import org.bouncycastle.cert.ocsp.OCSPReqBuilder;
 import org.bouncycastle.cert.ocsp.OCSPResp;
 import org.bouncycastle.cert.ocsp.SingleResp;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.DigestCalculatorProvider;
 import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
-import org.opensaml.xml.XMLObject;
-import org.opensaml.xml.io.Marshaller;
-import org.opensaml.xml.io.MarshallerFactory;
-import org.w3c.dom.Element;
-import org.w3c.dom.bootstrap.DOMImplementationRegistry;
-import org.w3c.dom.ls.DOMImplementationLS;
-import org.w3c.dom.ls.LSOutput;
-import org.w3c.dom.ls.LSSerializer;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.x509Certificate.validation.cache.CRLCache;
 import org.wso2.carbon.identity.x509Certificate.validation.cache.CRLCacheEntry;
@@ -80,9 +72,7 @@ import org.wso2.carbon.utils.CarbonUtils;
 
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -118,6 +108,7 @@ public class CertificateValidationUtil {
 
     private static final String BC = "BC";
     private static final String CONTENT_TYPE = "text/xml; charset=utf-8";
+
     private static Log log = LogFactory.getLog(CertificateValidationUtil.class);
 
     /**
@@ -128,68 +119,69 @@ public class CertificateValidationUtil {
     public static void addDefaultValidationConfigInRegistry(String tenantDomain) {
 
         File validatorConfigFile = getValidatorConfigFile();
-
-        if (tenantDomain == null) {
-            tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
-        }
-
-        XMLStreamReader xmlStreamReader = null;
-        InputStream inputStream = null;
-        try {
-            inputStream = new FileInputStream(validatorConfigFile);
-            StAXOMBuilder builder = new StAXOMBuilder(inputStream);
-
-            OMElement documentElement = builder.getDocumentElement();
-            Iterator iterator = documentElement.getChildElements();
-            while (iterator.hasNext()) {
-                OMElement childElement = (OMElement) iterator.next();
-                if (isValidatorConfigProperty(childElement)) {
-                    addDefaultValidatorConfig(childElement, tenantDomain);
-                } else if (isTrustStoreConfigProperty(childElement)) {
-                    addDefaultCACertificates(childElement, tenantDomain);
-                }
+        if (validatorConfigFile != null) {
+            if (tenantDomain == null) {
+                tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
             }
-        } catch (XMLStreamException | FileNotFoundException e) {
-            log.warn("Error while loading default validator configurations to the registry.", e);
-        } finally {
+
+            InputStream inputStream = null;
             try {
-                if (xmlStreamReader != null) {
-                    xmlStreamReader.close();
+                inputStream = new FileInputStream(validatorConfigFile);
+                StAXOMBuilder builder = new StAXOMBuilder(inputStream);
+
+                OMElement documentElement = builder.getDocumentElement();
+                Iterator iterator = documentElement.getChildElements();
+                while (iterator.hasNext()) {
+                    OMElement childElement = (OMElement) iterator.next();
+                    if (isValidatorConfigProperty(childElement)) {
+                        addDefaultValidatorConfig(childElement, tenantDomain);
+                    } else if (isTrustStoreConfigProperty(childElement)) {
+                        addDefaultCACertificates(childElement, tenantDomain);
+                    }
                 }
-                if (inputStream != null) {
-                    inputStream.close();
+            } catch (XMLStreamException | FileNotFoundException e) {
+                log.warn("Error while loading default validator configurations to the registry.", e);
+            } finally {
+                try {
+                    if (inputStream != null) {
+                        inputStream.close();
+                    }
+                } catch (IOException e) {
+                    log.error("Error while closing input stream", e);
                 }
-            } catch (XMLStreamException e) {
-                log.error("Error while closing XML stream", e);
-            } catch (IOException e) {
-                log.error("Error while closing input stream", e);
             }
         }
     }
 
     /**
-     * Load Validator Configurations from Registry
+     * Load Validator Configurations from Registry and return the enabled validators' configurations
      *
      * @return List of registered validators
-     * @throws CertificateValidationException
+     * @throws CertificateValidationException certificateValidationException
      */
-    public static List<RevocationValidator> loadValidatorConfigFromRegistry() throws CertificateValidationException {
+    public static List<RevocationValidator> loadEnabledValidatorConfigFromRegistry()
+            throws CertificateValidationException {
 
-        if (log.isDebugEnabled()) {
-            log.debug("Loading X509 certificate validator configurations from registry.");
-        }
         String validatorConfRegPath = X509CertificateValidationConstants.VALIDATOR_CONF_REG_PATH;
-        List<RevocationValidator> validators = new ArrayList<>();
+        List<RevocationValidator> validators = null;
 
         try {
+            if (log.isDebugEnabled()) {
+                log.debug("Loading X509 certificate validator configurations from registry in: " +
+                        validatorConfRegPath);
+            }
             //get tenant registry for loading validator configurations
             Registry registry = getGovernanceRegistry(
                     PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain());
             if (registry.resourceExists(validatorConfRegPath)) {
-                getValidatorsFromRegistryResource(validators, registry, validatorConfRegPath);
+                if (log.isDebugEnabled()) {
+                    log.debug("Validator configurations are available in registry path: " + validatorConfRegPath);
+                }
+                validators = getEnabledValidatorsFromRegistryResource(registry, validatorConfRegPath);
             }
         } catch (RegistryException e) {
-            throw new CertificateValidationException("Error while loading validator configurations from registry.", e);
+            throw new CertificateValidationException("Error while loading validator configurations from registry in: " +
+                    validatorConfRegPath, e);
         }
         return validators;
     }
@@ -202,7 +194,7 @@ public class CertificateValidationUtil {
 
         File configFile = new File(configFilePath);
         if (!configFile.exists()) {
-            log.error("Certification validation Configuration File is not present at: " + configFilePath);
+            log.error("Certification validation Configuration File is not available at: " + configFilePath);
             return null;
         }
         return configFile;
@@ -226,13 +218,17 @@ public class CertificateValidationUtil {
         for (Validator validator : defaultValidatorConfig) {
             String validatorConfRegPath = X509CertificateValidationConstants.VALIDATOR_CONF_REG_PATH +
                     PATH_SEPARATOR + getNormalizedName(validator.getDisplayName());
+            if (log.isDebugEnabled()) {
+                log.debug("Adding default validator configurations to registry in: " +
+                        validatorConfRegPath);
+            }
             try {
                 Registry registry = getGovernanceRegistry(tenantDomain);
                 if (!registry.resourceExists(validatorConfRegPath)) {
                     addValidatorConfigInRegistry(registry, validatorConfRegPath, validator);
                     if (log.isDebugEnabled()) {
-                        String msg = "Validator configuration for %s is added to %s tenant registry.";
-                        log.debug(String.format(msg, validator.getDisplayName(), tenantDomain));
+                        log.debug(String.format("Validator configuration for %s is added to %s tenant registry.",
+                                validator.getDisplayName(), tenantDomain));
                     }
                 }
             } catch (RegistryException | CertificateValidationException e) {
@@ -260,30 +256,24 @@ public class CertificateValidationUtil {
                     X509CertificateValidationConstants.VALIDATOR_CONF_FULL_CHAIN_VALIDATION);
             String retryCount = validatorProperties.get(X509CertificateValidationConstants.VALIDATOR_CONF_RETRY_COUNT);
 
-            Validator validator = new Validator();
-            validator.setName(name);
-            validator.setDisplayName(displayName);
-            validator.setEnabled(Boolean.parseBoolean(enable));
-            validator.setPriority(Integer.parseInt(priority));
-            validator.setFullChainValidationEnabled(Boolean.parseBoolean(fullChainValidation));
-            validator.setRetryCount(Integer.parseInt(retryCount));
-
+            Validator validator = new Validator(name, displayName, Boolean.parseBoolean(enable),
+                    Integer.parseInt(priority), Boolean.parseBoolean(fullChainValidation), Integer.parseInt(retryCount));
             defaultValidatorConfig.add(validator);
         }
         return defaultValidatorConfig;
     }
 
-    private static void addValidatorConfigInRegistry(Registry registry, String validatorConfRegPath, Validator validator)
-            throws RegistryException {
+    private static void addValidatorConfigInRegistry(Registry registry, String validatorConfRegPath,
+                                                     Validator validator) throws RegistryException {
 
         Resource resource = registry.newResource();
         resource.addProperty(X509CertificateValidationConstants.VALIDATOR_CONF_NAME, validator.getName());
         resource.addProperty(X509CertificateValidationConstants.VALIDATOR_CONF_ENABLE,
-                Boolean.toString(validator.getEnabled()));
+                Boolean.toString(validator.isEnabled()));
         resource.addProperty(X509CertificateValidationConstants.VALIDATOR_CONF_PRIORITY,
                 Integer.toString(validator.getPriority()));
         resource.addProperty(X509CertificateValidationConstants.VALIDATOR_CONF_FULL_CHAIN_VALIDATION,
-                Boolean.toString(validator.getFullChainValidationEnabled()));
+                Boolean.toString(validator.isFullChainValidationEnabled()));
         resource.addProperty(X509CertificateValidationConstants.VALIDATOR_CONF_RETRY_COUNT,
                 Integer.toString(validator.getRetryCount()));
         registry.put(validatorConfRegPath, resource);
@@ -305,32 +295,37 @@ public class CertificateValidationUtil {
         return validatorProperties;
     }
 
-    private static void getValidatorsFromRegistryResource(List<RevocationValidator> validators, Registry registry,
-                                                          String validatorConfRegPath)
+    private static List<RevocationValidator> getEnabledValidatorsFromRegistryResource(Registry registry,
+                                                                                      String validatorConfRegPath)
             throws RegistryException {
 
+        List<RevocationValidator> validators = new ArrayList<>();
         Collection collection = (Collection) registry.get(validatorConfRegPath);
         if (collection != null) {
             String[] children = collection.getChildren();
             for (String child : children) {
                 Resource resource = registry.get(child);
                 Validator validator = resourceToValidatorObject(resource);
-                RevocationValidator revocationValidator;
-                try {
-                    Class<?> clazz = Class.forName(validator.getName());
-                    Constructor<?> constructor = clazz.getConstructor();
-                    revocationValidator = (RevocationValidator) constructor.newInstance();
-                } catch (ClassNotFoundException | InvocationTargetException | NoSuchMethodException |
-                        InstantiationException | IllegalAccessException e) {
-                    continue;
+
+                if (validator.isEnabled()) {
+                    RevocationValidator revocationValidator;
+                    try {
+                        Class<?> clazz = Class.forName(validator.getName());
+                        Constructor<?> constructor = clazz.getConstructor();
+                        revocationValidator = (RevocationValidator) constructor.newInstance();
+                    } catch (ClassNotFoundException | InvocationTargetException | NoSuchMethodException |
+                            InstantiationException | IllegalAccessException e) {
+                        continue;
+                    }
+                    revocationValidator.setEnable(validator.isEnabled());
+                    revocationValidator.setPriority(validator.getPriority());
+                    revocationValidator.setFullChainValidation(validator.isFullChainValidationEnabled());
+                    revocationValidator.setRetryCount(validator.getRetryCount());
+                    validators.add(revocationValidator);
                 }
-                revocationValidator.setEnable(validator.getEnabled());
-                revocationValidator.setPriority(validator.getPriority());
-                revocationValidator.setFullChainValidation(validator.getFullChainValidationEnabled());
-                revocationValidator.setRetryCount(validator.getRetryCount());
-                validators.add(revocationValidator);
             }
         }
+        return validators;
     }
 
     private static Validator resourceToValidatorObject(Resource resource) {
@@ -359,28 +354,28 @@ public class CertificateValidationUtil {
      *
      * @param peerCertificate peer certificate
      * @return List of issuer CA certificates
-     * @throws CertificateValidationException
+     * @throws CertificateValidationException certificateValidationException
      */
     public static List<CACertificate> loadCaCertsFromRegistry(X509Certificate peerCertificate)
             throws CertificateValidationException {
 
-        List<CACertificate> caCertificateList = new ArrayList<>();
+        List<CACertificate> caCertificateList;
+        String caRegPath = null;
         try {
-            String caRegPath = getCACertsRegPath(peerCertificate);
-
-            //get tenant registry for loading validator configurations
-            Registry registry = getGovernanceRegistry(
-                    PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain());
-            if (registry.resourceExists(caRegPath)) {
-                getCACertsFromRegResource(caCertificateList, caRegPath, registry);
+            caRegPath = getCACertsRegPath(peerCertificate);
+            if (log.isDebugEnabled()) {
+                log.debug("CA certificate registry full path: " + caRegPath);
             }
+            caCertificateList = getCACertsFromRegResource(caRegPath);
         } catch (RegistryException | UnsupportedEncodingException e) {
-            throw new CertificateValidationException("Error while loading validator configurations from registry.", e);
+            throw new CertificateValidationException("Error while loading CA certificates from registry in:" +
+                    caRegPath, e);
         }
         return caCertificateList;
     }
 
     private static void addDefaultCACertificates(OMElement trustStoresElement, String tenantDomain) {
+
         try {
             Iterator trustStoreIterator = trustStoresElement.getChildElements();
             Registry registry = getGovernanceRegistry(tenantDomain);
@@ -392,18 +387,19 @@ public class CertificateValidationUtil {
 
             for (X509Certificate certificate : trustedCertificates) {
                 String caCertRegPath = getCACertRegFullPath(certificate);
-
-                if (!registry.resourceExists(caCertRegPath)) {
-                    addDefaultCACertificateInRegistry(registry, caCertRegPath, certificate);
+                if (log.isDebugEnabled()) {
+                    log.debug("CA certificate registry path: " + caCertRegPath);
                 }
+                addDefaultCACertificateInRegistry(registry, caCertRegPath, certificate);
             }
 
-        } catch (RegistryException | UnsupportedEncodingException | CertificateValidationException e) {
+        } catch (UnsupportedEncodingException | CertificateValidationException e) {
             log.error("Error while adding validator configurations in registry.", e);
         }
     }
 
     private static String getCACertRegFullPath(X509Certificate certificate) throws UnsupportedEncodingException {
+
         return X509CertificateValidationConstants.CA_CERT_REG_PATH +
                 PATH_SEPARATOR +
                 URLEncoder.encode(getNormalizedName(certificate.getSubjectDN().getName()), "UTF-8").
@@ -412,24 +408,36 @@ public class CertificateValidationUtil {
     }
 
     private static String getCACertsRegPath(X509Certificate peerCertificate) throws UnsupportedEncodingException {
+
         return X509CertificateValidationConstants.CA_CERT_REG_PATH +
                 PATH_SEPARATOR + URLEncoder.encode(getNormalizedName(peerCertificate.getIssuerDN().getName()), "UTF-8").
                 replaceAll("%", ":");
     }
 
-    private static void getCACertsFromRegResource(List<CACertificate> caCertificateList, String caRegPath, Registry registry) throws RegistryException, CertificateValidationException {
-        Collection collection = (Collection) registry.get(caRegPath);
-        if (collection != null) {
-            String[] children = collection.getChildren();
-            for (String child : children) {
-                Resource resource = registry.get(child);
-                CACertificate caCertificate = resourceToCACertObject(resource);
-                caCertificateList.add(caCertificate);
+    private static List<CACertificate> getCACertsFromRegResource(String caRegPath) throws RegistryException,
+            CertificateValidationException {
+
+        List<CACertificate> caCertificateList = new ArrayList<>();
+        //get tenant registry for loading validator configurations
+        Registry registry = getGovernanceRegistry(
+                PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain());
+
+        if (registry.resourceExists(caRegPath)) {
+            Collection collection = (Collection) registry.get(caRegPath);
+            if (collection != null) {
+                String[] children = collection.getChildren();
+                for (String child : children) {
+                    Resource resource = registry.get(child);
+                    CACertificate caCertificate = resourceToCACertObject(resource);
+                    caCertificateList.add(caCertificate);
+                }
             }
         }
+        return caCertificateList;
     }
 
     private static CACertificate resourceToCACertObject(Resource resource) throws CertificateValidationException {
+
         List<String> crlUrls;
         List<String> ocspUrls;
         X509Certificate x509Certificate;
@@ -443,7 +451,7 @@ public class CertificateValidationUtil {
             byte[] regContent = (byte[]) resource.getContent();
             x509Certificate = decodeCertificate(new String(regContent));
         } catch (RegistryException | CertificateException e) {
-            throw new CertificateValidationException("Error when converting registry resource content.");
+            throw new CertificateValidationException("Error when converting registry resource content.", e);
         }
         return new CACertificate(crlUrls, ocspUrls, x509Certificate);
     }
@@ -451,6 +459,7 @@ public class CertificateValidationUtil {
     private static void addDefaultCACertificateInRegistry(Registry registry, String caCertRegPath,
                                                           X509Certificate certificate)
             throws CertificateValidationException {
+
         try {
             if (!registry.resourceExists(caCertRegPath)) {
                 Resource resource = registry.newResource();
@@ -458,7 +467,8 @@ public class CertificateValidationUtil {
                 StringBuilder crlUrlReg = new StringBuilder();
                 if (CollectionUtils.isNotEmpty(crlUrls)) {
                     for (String crlUrl : crlUrls) {
-                        crlUrlReg.append(crlUrl).append(X509CertificateValidationConstants.CA_CERT_REG_CRL_OCSP_SEPERATOR);
+                        crlUrlReg.append(crlUrl).append(X509CertificateValidationConstants.
+                                CA_CERT_REG_CRL_OCSP_SEPERATOR);
                     }
                 }
 
@@ -466,7 +476,8 @@ public class CertificateValidationUtil {
                 StringBuilder ocspUrlReg = new StringBuilder();
                 if (CollectionUtils.isNotEmpty(ocspUrls)) {
                     for (String ocspUrl : ocspUrls) {
-                        ocspUrlReg.append(ocspUrl).append(X509CertificateValidationConstants.CA_CERT_REG_CRL_OCSP_SEPERATOR);
+                        ocspUrlReg.append(ocspUrl).append(X509CertificateValidationConstants.
+                                CA_CERT_REG_CRL_OCSP_SEPERATOR);
                     }
                 }
                 resource.addProperty(X509CertificateValidationConstants.CA_CERT_REG_CRL, crlUrlReg.toString());
@@ -475,13 +486,16 @@ public class CertificateValidationUtil {
                 registry.put(caCertRegPath, resource);
             }
         } catch (RegistryException e) {
-            throw new CertificateValidationException("Error adding default ca certificate in registry.", e);
+            throw new CertificateValidationException("Error adding default ca certificate with serial num:" +
+                    certificate.getSerialNumber() + " in registry.", e);
         } catch (CertificateException e) {
-            throw new CertificateValidationException("Error encoding ca certificate to add in registry.", e);
+            throw new CertificateValidationException("Error encoding ca certificate with serial num: " +
+                    certificate.getSerialNumber() + " to add in registry.", e);
         }
     }
 
     private static void getAllTrustedCerts(Iterator trustStoreIterator, List<X509Certificate> trustedCertificates) {
+
         OMElement trustStoreElement = (OMElement) trustStoreIterator.next();
         String trustStoreFile = trustStoreElement.getAttributeValue(
                 new QName(X509CertificateValidationConstants.TRUSTSTORE_CONF_FILE));
@@ -503,28 +517,27 @@ public class CertificateValidationUtil {
      */
 
     /**
-     * Extracts all CRL distribution point URLs from the "CRL Distribution Point"
-     * extension in a X.509 certificate. If CRL distribution point extension is
-     * unavailable, returns an empty list.
+     * Extracts all CRL distribution point URLs from the "CRL Distribution Point" extension in a X.509 certificate.
+     * If CRL distribution point extension or CRL Urls are unavailable, throw an exception.
      *
      * @param cert X509 certificate
      * @return List of CRL Urls in the certificate
-     * @throws CertificateValidationException
+     * @throws CertificateValidationException certificateValidationException
      */
-    public static List<String> getCRLUrls(X509Certificate cert)
-            throws CertificateValidationException {
+    public static List<String> getCRLUrls(X509Certificate cert) throws CertificateValidationException {
 
-        List<String> crlUrls = new ArrayList<>();
+        List<String> crlUrls;
         byte[] crlDPExtensionValue = getCRLDPExtensionValue(cert);
         if (crlDPExtensionValue == null) {
-            log.error("Certificate doesn't have CRL Distribution points");
-            return crlUrls;
+            throw new CertificateValidationException("Certificate with serial num:" + cert.getSerialNumber() +
+                    " doesn't have CRL Distribution points");
         }
         CRLDistPoint distPoint = getCrlDistPoint(crlDPExtensionValue);
-        getCrlUrlsFromDistPoint(crlUrls, distPoint);
+        crlUrls = getCrlUrlsFromDistPoint(distPoint);
 
         if (crlUrls.isEmpty()) {
-            throw new CertificateValidationException("Cant get CRL urls from certificate");
+            throw new CertificateValidationException("Cant get CRL urls from certificate with serial num:" +
+                    cert.getSerialNumber());
         }
         return crlUrls;
     }
@@ -536,47 +549,99 @@ public class CertificateValidationUtil {
      * @param retryCount retry count to connect to CRL Url and get the CRL
      * @param crlUrls    List of CRL Urls
      * @return Revocation status of the certificate
-     * @throws CertificateValidationException
+     * @throws CertificateValidationException certificateValidationException
      */
     public static RevocationStatus getRevocationStatus(X509Certificate peerCert, int retryCount, List<String> crlUrls)
             throws CertificateValidationException {
 
         //check with distributions points in the list one by one. if one fails go to the other.
         for (String crlUrl : crlUrls) {
-            log.info("Trying to get CRL for URL: " + crlUrl);
+            if (log.isDebugEnabled()) {
+                log.debug("Trying to get CRL for URL: " + crlUrl);
+            }
 
             X509CRL x509CRL = getCRLFromCache(crlUrl);
             try {
                 if (x509CRL != null) {
-                    if (isValidCrlFromCache(x509CRL)) {
-                        RevocationStatus status = getRevocationStatusFromCRL(x509CRL, peerCert);
-                        log.info("CRL taken from cache.");
-                        return status;
+                    if (isValidX509Crl(x509CRL, peerCert)) {
+                        if (log.isDebugEnabled()) {
+                            log.debug("CRL is taking from cache.");
+                        }
+                        return getRevocationStatusFromCRL(x509CRL, peerCert);
                     } else {
-                        log.error("CRL is too old.");
+                        if (log.isDebugEnabled()) {
+                            log.debug("CRL is too old. Removing from cache.");
+                        }
                         CRLCache.getInstance().clearCacheEntry(crlUrl);
                     }
                 }
 
-                x509CRL = downloadCRLFromWeb(crlUrl, retryCount);
+                x509CRL = downloadCRLFromWeb(crlUrl, retryCount, peerCert);
                 if (x509CRL != null) {
                     addCRLToCache(crlUrl, x509CRL);
+                    if (log.isDebugEnabled()) {
+                        log.debug("CRL is added into cache.");
+                    }
                     return getRevocationStatusFromCRL(x509CRL, peerCert);
                 }
             } catch (Exception e) {
-                log.info("Either url is bad or cant build X509CRL. So check with the next url in the list.", e);
+                log.info("Either url is bad or cant build X509CRL. So check with the next url in the list.");
+                if (log.isDebugEnabled()) {
+                    log.debug("Error when getting the X509 CRL for certificate: " + peerCert.getSerialNumber(), e);
+                }
             }
         }
         throw new CertificateValidationException("Cannot check revocation status with the certificate");
     }
 
-    private static boolean isValidCrlFromCache(X509CRL x509CRL) {
+    private static boolean isValidX509Crl(X509CRL x509CRL, X509Certificate peerCert)
+            throws CertificateValidationException {
 
         Date currentDate = new Date();
-        return x509CRL.getNextUpdate() != null && !currentDate.after(x509CRL.getNextUpdate());
+        Date nextUpdate = x509CRL.getNextUpdate();
+        boolean isValid = false;
+
+        if (isValidX509CRLFromIssuerDN(x509CRL, peerCert)) {
+            isValid = isValidX509CRLFromNextUpdate(x509CRL, currentDate, nextUpdate);
+        }
+        return isValid;
     }
 
-    private static X509CRL downloadCRLFromWeb(String crlURL, int retryCount)
+    private static boolean isValidX509CRLFromIssuerDN(X509CRL x509CRL, X509Certificate peerCert)
+            throws CertificateValidationException {
+
+        if (peerCert.getIssuerDN().equals(x509CRL.getIssuerDN())) {
+            return true;
+        } else {
+            throw new CertificateValidationException("X509 CRL is not valid. Issuer DN in the peer certificate: " +
+                    peerCert.getIssuerDN() + " is not matched with the Issuer DN in the X509 CRL: " +
+                    x509CRL.getIssuerDN());
+        }
+    }
+
+    private static boolean isValidX509CRLFromNextUpdate(X509CRL x509CRL, Date currentDate, Date nextUpdate)
+            throws CertificateValidationException {
+
+        if (nextUpdate != null) {
+            if (log.isDebugEnabled()) {
+                log.debug("Validating the next update date: " + nextUpdate.toString() + " with the current date: " +
+                        currentDate.toString());
+            }
+            if (currentDate.before(x509CRL.getNextUpdate())) {
+                return true;
+            } else {
+                throw new CertificateValidationException("X509 CRL is not valid. Next update date: " +
+                        nextUpdate.toString() + " is before the current date: " + currentDate.toString());
+            }
+        } else {
+            if (log.isDebugEnabled()) {
+                log.debug("Couldn't validate the X509 CRL, next update date is not available.");
+            }
+        }
+        return false;
+    }
+
+    private static X509CRL downloadCRLFromWeb(String crlURL, int retryCount, X509Certificate peerCert)
             throws IOException, CertificateValidationException {
 
         InputStream crlStream = null;
@@ -585,18 +650,27 @@ public class CertificateValidationUtil {
             URL url = new URL(crlURL);
             crlStream = url.openStream();
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
-            x509CRL = (X509CRL) cf.generateCRL(crlStream);
+            X509CRL x509CRLDownloaded = (X509CRL) cf.generateCRL(crlStream);
+            if (log.isDebugEnabled()) {
+                log.debug("CRL is downloaded from CRL Url: " + crlURL);
+            }
+
+            if (isValidX509Crl(x509CRLDownloaded, peerCert)) {
+                x509CRL = x509CRLDownloaded;
+            }
         } catch (MalformedURLException e) {
             throw new CertificateValidationException("CRL Url is malformed", e);
         } catch (IOException e) {
             if (retryCount == 0) {
-                throw new CertificateValidationException("Cant reach URI: " + crlURL + " - only support HTTP", e);
+                throw new CertificateValidationException("Cant reach the CRL Url: " + crlURL, e);
             } else {
-                log.info("Cant reach URI: " + crlURL + ". Retrying to connect - attempt " + retryCount);
-                downloadCRLFromWeb(crlURL, --retryCount);
+                if (log.isDebugEnabled()) {
+                    log.debug("Cant reach CRL Url: " + crlURL + ". Retrying to connect - attempt " + retryCount);
+                }
+                downloadCRLFromWeb(crlURL, --retryCount, peerCert);
             }
         } catch (CertificateException e) {
-            throw new CertificateValidationException(e);
+            throw new CertificateValidationException("Error when generating certificate factory.", e);
         } catch (CRLException e) {
             throw new CertificateValidationException("Cannot generate X509CRL from the stream data", e);
         } finally {
@@ -616,11 +690,13 @@ public class CertificateValidationUtil {
     }
 
     private static byte[] getCRLDPExtensionValue(X509Certificate cert) {
+
         //DER-encoded octet string of the extension value for CRLDistributionPoints identified by the passed-in oid
         return cert.getExtensionValue(Extension.cRLDistributionPoints.getId());
     }
 
     private static CRLDistPoint getCrlDistPoint(byte[] crlDPExtensionValue) throws CertificateValidationException {
+
         //crlDPExtensionValue is encoded in ASN.1 format
         ASN1InputStream asn1In = new ASN1InputStream(crlDPExtensionValue);
         //DER (Distinguished Encoding Rules) is one of ASN.1 encoding rules defined in ITU-T X.690, 2002, specification.
@@ -638,7 +714,9 @@ public class CertificateValidationUtil {
         return distPoint;
     }
 
-    private static void getCrlUrlsFromDistPoint(List<String> crlUrls, CRLDistPoint distPoint) {
+    private static List<String> getCrlUrlsFromDistPoint(CRLDistPoint distPoint) {
+
+        List<String> crlUrls = new ArrayList<>();
         //Loop through ASN1Encodable DistributionPoints
         for (DistributionPoint dp : distPoint.getDistributionPoints()) {
             //get ASN1Encodable DistributionPointName
@@ -657,6 +735,7 @@ public class CertificateValidationUtil {
                 }
             }
         }
+        return crlUrls;
     }
 
     private static X509CRL getCRLFromCache(String crlUrl) {
@@ -688,21 +767,23 @@ public class CertificateValidationUtil {
      *
      * @param cert is the certificate
      * @return a list of URLs in AIA extension of the certificate which will hopefully contain an OCSP endpoint
-     * @throws CertificateValidationException
+     * @throws CertificateValidationException certificateValidationException
      */
     public static List<String> getAIALocations(X509Certificate cert) throws CertificateValidationException {
 
-        List<String> ocspUrlList = new ArrayList<>();
+        List<String> ocspUrlList;
         byte[] aiaExtensionValue = getAiaExtensionValue(cert);
         if (aiaExtensionValue == null) {
-            log.error("Certificate Doesn't have Authority Information Access points");
-            return ocspUrlList;
+            throw new CertificateValidationException("Certificate with serial num: " +
+                    cert.getSerialNumber() + " doesn't have Authority Information Access points");
         }
         AuthorityInformationAccess authorityInformationAccess = getAuthorityInformationAccess(aiaExtensionValue);
-        getOcspUrlsFromAuthorityInfoAccess(ocspUrlList, authorityInformationAccess);
+        ocspUrlList = getOcspUrlsFromAuthorityInfoAccess(authorityInformationAccess);
 
-        if (ocspUrlList.isEmpty())
-            throw new CertificateValidationException("Cant get OCSP urls from certificate");
+        if (ocspUrlList.isEmpty()) {
+            throw new CertificateValidationException("Cant get OCSP urls from certificate with serial num: " +
+                    cert.getSerialNumber());
+        }
 
         return ocspUrlList;
     }
@@ -713,38 +794,41 @@ public class CertificateValidationUtil {
      * @param issuerCert   is the Certificate of the Issuer of the peer certificate we are interested in
      * @param serialNumber of the peer certificate
      * @return generated OCSP request
-     * @throws CertificateValidationException
+     * @throws CertificateValidationException certificateValidationException
      */
-    public static OCSPReq generateOCSPRequest(X509Certificate issuerCert, BigInteger serialNumber)
+    private static OCSPReq generateOCSPRequest(X509Certificate issuerCert, BigInteger serialNumber)
             throws CertificateValidationException {
 
-        //Add provider BC
-        Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+        // Add provider BC
+        Security.addProvider(new BouncyCastleProvider());
         try {
 
             byte[] issuerCertEnc = issuerCert.getEncoded();
             X509CertificateHolder certificateHolder = new X509CertificateHolder(issuerCertEnc);
             DigestCalculatorProvider digCalcProv = new JcaDigestCalculatorProviderBuilder().setProvider(BC).build();
 
-            //  CertID structure is used to uniquely identify certificates that are the subject of
+            // CertID structure is used to uniquely identify certificates that are the subject of
             // an OCSP request or response and has an ASN.1 definition. CertID structure is defined in RFC 2560
-            CertificateID id = new CertificateID(digCalcProv.get(CertificateID.HASH_SHA1), certificateHolder, serialNumber);
+            CertificateID id = new CertificateID(digCalcProv.get(CertificateID.HASH_SHA1), certificateHolder,
+                    serialNumber);
 
             // basic request generation with nonce
             OCSPReqBuilder builder = new OCSPReqBuilder();
             builder.addRequest(id);
 
-            // create details for nonce extension. The nonce extension is used to bind
-            // a request to a response to prevent replay attacks. As the name implies,
-            // the nonce value is something that the client should only use once within a reasonably small period.
+            // create details for nonce extension. The nonce extension is used to bind a request to a response to
+            // prevent replay attacks. As the name implies, the nonce value is something that the client should only
+            // use once within a reasonably small period.
             BigInteger nonce = BigInteger.valueOf(System.currentTimeMillis());
 
-            //to create the request Extension
-            builder.setRequestExtensions(new Extensions(new Extension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce, false, new DEROctetString(nonce.toByteArray()))));
+            // create the request Extension
+            builder.setRequestExtensions(new Extensions(new Extension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce, false,
+                    new DEROctetString(nonce.toByteArray()))));
 
             return builder.build();
         } catch (Exception e) {
-            throw new CertificateValidationException("Cannot generate OSCP Request with the given certificate", e);
+            throw new CertificateValidationException("Cannot generate OSCP Request with the given certificate with " +
+                    "serial num: " + serialNumber, e);
         }
     }
 
@@ -756,42 +840,45 @@ public class CertificateValidationUtil {
      * @param retryCount retry count to connect to OCSP Url and get the OCSP response
      * @param locations  AIA locations
      * @return Revocation status of the certificate
-     * @throws CertificateValidationException
+     * @throws CertificateValidationException certificateValidationException
      */
     public static RevocationStatus getRevocationStatus(X509Certificate peerCert, X509Certificate issuerCert,
                                                        int retryCount, List<String> locations)
             throws CertificateValidationException {
 
-        OCSPReq request = CertificateValidationUtil.generateOCSPRequest(issuerCert, peerCert.getSerialNumber());
-        if (CollectionUtils.isNotEmpty(locations)) {
-            for (String serviceUrl : locations) {
-
-                SingleResp[] responses;
-                try {
-                    OCSPResp ocspResponse = CertificateValidationUtil.getOCSPResponse(serviceUrl, request, retryCount);
-                    if (OCSPResponseStatus.SUCCESSFUL != ocspResponse.getStatus()) {
-                        continue; // Server didn't give the response right.
+        OCSPReq request = generateOCSPRequest(issuerCert, peerCert.getSerialNumber());
+        for (String serviceUrl : locations) {
+            SingleResp[] responses;
+            try {
+                if (log.isDebugEnabled()) {
+                    log.debug("Trying to get OCSP Response from : " + serviceUrl);
+                }
+                OCSPResp ocspResponse = CertificateValidationUtil.getOCSPResponse(serviceUrl, request, retryCount);
+                if (OCSPResponseStatus.SUCCESSFUL != ocspResponse.getStatus()) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("OCSP Response is not successfully received.");
                     }
-
-                    BasicOCSPResp basicResponse = (BasicOCSPResp) ocspResponse.getResponseObject();
-                    responses = (basicResponse == null) ? null : basicResponse.getResponses();
-                    //todo use the super exception
-                } catch (Exception e) {
                     continue;
                 }
 
-                if (responses != null && responses.length == 1) {
-                    SingleResp resp = responses[0];
-                    RevocationStatus status = CertificateValidationUtil.getRevocationStatusFromOCSP(resp);
-                    return status;
-                }
+                BasicOCSPResp basicResponse = (BasicOCSPResp) ocspResponse.getResponseObject();
+                responses = (basicResponse == null) ? null : basicResponse.getResponses();
+            } catch (Exception e) {
+                continue;
+            }
+
+            if (responses != null && responses.length == 1) {
+                return CertificateValidationUtil.getRevocationStatusFromOCSP(responses[0]);
             }
         }
-        throw new CertificateValidationException("Cant get Revocation Status from OCSP.");
+        throw new CertificateValidationException("Cant get Revocation Status from OCSP using any of the OCSP Urls " +
+                "for certificate with serial num:" + peerCert.getSerialNumber());
     }
 
-    private static void getOcspUrlsFromAuthorityInfoAccess(List<String> ocspUrlList, AuthorityInformationAccess authorityInformationAccess) {
+    private static List<String> getOcspUrlsFromAuthorityInfoAccess(AuthorityInformationAccess
+                                                                           authorityInformationAccess) {
 
+        List<String> ocspUrlList = new ArrayList<>();
         AccessDescription[] accessDescriptions;
         if (authorityInformationAccess != null) {
             accessDescriptions = authorityInformationAccess.getAccessDescriptions();
@@ -805,6 +892,7 @@ public class CertificateValidationUtil {
                 }
             }
         }
+        return ocspUrlList;
     }
 
     private static AuthorityInformationAccess getAuthorityInformationAccess(byte[] aiaExtensionValue)
@@ -835,14 +923,13 @@ public class CertificateValidationUtil {
      * @param serviceUrl URL of the OCSP endpoint.
      * @param request    an OCSP request object.
      * @return OCSP response encoded in ASN.1 structure.
-     * @throws CertificateValidationException
+     * @throws CertificateValidationException certificateValidationException
      */
     private static OCSPResp getOCSPResponse(String serviceUrl, OCSPReq request, int retryCount)
             throws CertificateValidationException {
 
         OCSPResp ocspResp = null;
         try {
-            //Todo: Use http client.
             HttpPost httpPost = new HttpPost(serviceUrl);
             setRequestProperties(request.getEncoded(), httpPost);
             DefaultHttpClient httpClient = new DefaultHttpClient();
@@ -876,32 +963,8 @@ public class CertificateValidationUtil {
         httpPost.setEntity(new ByteArrayEntity(message, ContentType.create(CONTENT_TYPE)));
     }
 
-    private static String marshall(XMLObject xmlObject) throws CertificateValidationException {
-
-        try {
-            System.setProperty("javax.xml.parsers.DocumentBuilderFactory",
-                    "org.apache.xerces.jaxp.DocumentBuilderFactoryImpl");
-
-            MarshallerFactory marshallerFactory = org.opensaml.xml.Configuration
-                    .getMarshallerFactory();
-            Marshaller marshaller = marshallerFactory.getMarshaller(xmlObject);
-            Element element = marshaller.marshall(xmlObject);
-
-            ByteArrayOutputStream byteArrayOutputStrm = new ByteArrayOutputStream();
-            DOMImplementationRegistry registry = DOMImplementationRegistry.newInstance();
-            DOMImplementationLS impl = (DOMImplementationLS) registry.getDOMImplementation("LS");
-            LSSerializer writer = impl.createLSSerializer();
-            LSOutput output = impl.createLSOutput();
-            output.setByteStream(byteArrayOutputStrm);
-            writer.write(element, output);
-            return byteArrayOutputStrm.toString();
-        } catch (Exception e) {
-            log.error("Error Serializing the SAML Response");
-            throw new CertificateValidationException("Error Serializing the SAML Response", e);
-        }
-    }
-
-    private static RevocationStatus getRevocationStatusFromOCSP(SingleResp resp) throws CertificateValidationException {
+    private static RevocationStatus getRevocationStatusFromOCSP(SingleResp resp)
+            throws CertificateValidationException {
 
         Object status = resp.getCertStatus();
         if (status == CertificateStatus.GOOD) {
@@ -925,7 +988,7 @@ public class CertificateValidationUtil {
      * @return Decoded <code>Certificate</code>
      * @throws java.security.cert.CertificateException Error when decoding certificate
      */
-    public static X509Certificate decodeCertificate(String encodedCert) throws CertificateException {
+    private static X509Certificate decodeCertificate(String encodedCert) throws CertificateException {
 
         if (encodedCert != null) {
             byte[] bytes = Base64.decode(encodedCert);
@@ -933,9 +996,7 @@ public class CertificateValidationUtil {
             return (X509Certificate) factory
                     .generateCertificate(new ByteArrayInputStream(bytes));
         } else {
-            String errorMsg = "Invalid encoded certificate: \'NULL\'";
-            log.debug(errorMsg);
-            throw new IllegalArgumentException(errorMsg);
+            throw new IllegalArgumentException("Invalid encoded certificate: \'NULL\'");
         }
     }
 
@@ -944,9 +1005,9 @@ public class CertificateValidationUtil {
      *
      * @param certificate certificate to get encoded
      * @return encoded certificate
-     * @throws CertificateException
+     * @throws CertificateException certificateException
      */
-    public static String encodeCertificate(X509Certificate certificate) throws CertificateException {
+    private static String encodeCertificate(X509Certificate certificate) throws CertificateException {
 
         if (certificate != null) {
             return Base64.encode(certificate.getEncoded());
@@ -958,6 +1019,7 @@ public class CertificateValidationUtil {
     }
 
     private static KeyStore loadKeyStoreFromFile(String keyStorePath, String password, String type) {
+
         if (type == null) {
             type = X509CertificateValidationConstants.TRUSTSTORE_CONF_TYPE_DEFAULT;
         }
@@ -970,7 +1032,7 @@ public class CertificateValidationUtil {
             store.load(inputStream, password.toCharArray());
             return store;
         } catch (Exception e) {
-            String errorMsg = "Error loading the key store from the given location.";
+            String errorMsg = "Error loading the key store from the location: " + absolutePath;
             log.error(errorMsg);
             throw new SecurityException(errorMsg, e);
         } finally {
@@ -984,7 +1046,9 @@ public class CertificateValidationUtil {
         }
     }
 
-    private static List<X509Certificate> exportCertificateChainFromKeyStore(KeyStore keyStore) throws KeyStoreException {
+    private static List<X509Certificate> exportCertificateChainFromKeyStore(KeyStore keyStore)
+            throws KeyStoreException {
+
         Enumeration<String> aliases = keyStore.aliases();
         List<X509Certificate> certificates = new ArrayList<>();
         while (aliases.hasMoreElements()) {
@@ -995,6 +1059,7 @@ public class CertificateValidationUtil {
     }
 
     private static String getNormalizedName(String name) {
+
         if (StringUtils.isNotBlank(name)) {
             return name.replaceAll("\\s+", "").toLowerCase();
             //~!@#;%^*+={}|<>,\\'\\\\"\\\\\\\\()[]
@@ -1003,13 +1068,16 @@ public class CertificateValidationUtil {
     }
 
     private static Registry getGovernanceRegistry(String tenantDomain) throws CertificateValidationException {
+
         Registry registry;
         try {
             registry = CertValidationDataHolder.getInstance().getRegistryService().getGovernanceSystemRegistry(
-                    CertValidationDataHolder.getInstance().getRealmService().getTenantManager().getTenantId(tenantDomain));
+                    CertValidationDataHolder.getInstance().getRealmService().getTenantManager()
+                            .getTenantId(tenantDomain));
         } catch (UserStoreException | RegistryException e) {
             throw new CertificateValidationException("Error while get tenant registry.", e);
         }
         return registry;
     }
+
 }

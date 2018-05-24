@@ -46,7 +46,7 @@ public class OCSPValidator implements RevocationValidator {
      * @param issuerCert issuer certificate of the peer
      * @param retryCount retry count to connect to OCSP Url and get OCSP response
      * @return revocation status of the peer certificate
-     * @throws CertificateValidationException
+     * @throws CertificateValidationException certificateValidationException
      */
     @Override
     public RevocationStatus checkRevocationStatus(X509Certificate peerCert, X509Certificate issuerCert, int retryCount)
@@ -61,41 +61,49 @@ public class OCSPValidator implements RevocationValidator {
 
     @Override
     public boolean isEnable() {
+
         return enabled;
     }
 
     @Override
     public void setEnable(boolean enabled) {
+
         this.enabled = enabled;
     }
 
     @Override
     public int getPriority() {
+
         return priority;
     }
 
     @Override
     public void setPriority(int priority) {
+
         this.priority = priority;
     }
 
     @Override
     public boolean isFullChainValidationEnable() {
+
         return fullChainValidationEnabled;
     }
 
     @Override
     public void setFullChainValidation(boolean fullChainValidationEnabled) {
+
         this.fullChainValidationEnabled = fullChainValidationEnabled;
     }
 
     @Override
     public int getRetryCount() {
+
         return retryCount;
     }
 
     @Override
     public void setRetryCount(int retryCount) {
+
         this.retryCount = retryCount;
     }
 }

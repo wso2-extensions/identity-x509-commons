@@ -30,51 +30,137 @@ public class Validator {
     private boolean fullChainValidationEnabled;
     private int retryCount;
 
-    public String getName() {
-        return name;
+    public Validator() {
+
     }
 
-    public void setName(String name) {
+    public Validator(String name, String displayName, boolean enabled, int priority, boolean fullChainValidationEnabled,
+                     int retryCount) {
         this.name = name;
-    }
-
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    public void setDisplayName(String displayName) {
         this.displayName = displayName;
-    }
-
-    public boolean getEnabled() {
-        return enabled;
-    }
-
-    public void setEnabled(boolean enabled) {
         this.enabled = enabled;
-    }
-
-    public int getPriority() {
-        return priority;
-    }
-
-    public void setPriority(int priority) {
         this.priority = priority;
-    }
-
-    public int getRetryCount() {
-        return retryCount;
-    }
-
-    public void setRetryCount(int retryCount) {
+        this.fullChainValidationEnabled = fullChainValidationEnabled;
         this.retryCount = retryCount;
     }
 
-    public boolean getFullChainValidationEnabled() {
+    /**
+     * Get validator name.
+     *
+     * @return validator name
+     */
+    public String getName() {
+
+        return name;
+    }
+
+    /**
+     * Set validator name.
+     *
+     * @param name validator name
+     */
+    public void setName(String name) {
+
+        this.name = name;
+    }
+
+    /**
+     * Get validator display name.
+     *
+     * @return validator display name
+     */
+    public String getDisplayName() {
+
+        return displayName;
+    }
+
+    /**
+     * Set validator display name.
+     *
+     * @param displayName validator display name
+     */
+    public void setDisplayName(String displayName) {
+
+        this.displayName = displayName;
+    }
+
+    /**
+     * Get whether the validator is enabled or not.
+     *
+     * @return true if validator is enabled
+     */
+    public boolean isEnabled() {
+
+        return enabled;
+    }
+
+    /**
+     * Set validator enabled or not.
+     *
+     * @param enabled true if validator to be enabled
+     */
+    public void setEnabled(boolean enabled) {
+
+        this.enabled = enabled;
+    }
+
+    /**
+     * Get validator priority.
+     *
+     * @return validator priority
+     */
+    public int getPriority() {
+
+        return priority;
+    }
+
+    /**
+     * Set validator priority.
+     *
+     * @param priority validator priority
+     */
+    public void setPriority(int priority) {
+
+        this.priority = priority;
+    }
+
+    /**
+     * Get validator retry count.
+     *
+     * @return validator retry count
+     */
+    public int getRetryCount() {
+
+        return retryCount;
+    }
+
+    /**
+     * Set validator retry count.
+     *
+     * @param retryCount validator retry count
+     */
+    public void setRetryCount(int retryCount) {
+
+        this.retryCount = retryCount;
+    }
+
+    /**
+     * Check whether full chain validation enabled.
+     *
+     * @return true if full chain validation enabled
+     */
+    public boolean isFullChainValidationEnabled() {
+
         return fullChainValidationEnabled;
     }
 
+    /**
+     * Set whether full chain validation enabled or not.
+     *
+     * @param fullChainValidationEnabled true if full chain validation to be enabled
+     */
     public void setFullChainValidationEnabled(boolean fullChainValidationEnabled) {
+
         this.fullChainValidationEnabled = fullChainValidationEnabled;
     }
 }

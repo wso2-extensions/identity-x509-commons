@@ -22,7 +22,7 @@ import java.io.Serializable;
 import java.security.cert.X509CRL;
 
 /**
- * CRL cache entry with X509CRL
+ * CRL cache entry with X509CRL.
  */
 public class CRLCacheEntry implements Serializable {
 
@@ -30,11 +30,23 @@ public class CRLCacheEntry implements Serializable {
 
     private X509CRL x509CRL;
 
+    /**
+     * Get X509 CRL.
+     *
+     * @return X509 CRL
+     */
     public X509CRL getX509CRL() {
+
         return x509CRL;
     }
 
+    /**
+     * Set X509 CRL.
+     *
+     * @param x509CRL X509 CRL
+     */
     public void setX509CRL(X509CRL x509CRL) {
+
         this.x509CRL = x509CRL;
     }
 }

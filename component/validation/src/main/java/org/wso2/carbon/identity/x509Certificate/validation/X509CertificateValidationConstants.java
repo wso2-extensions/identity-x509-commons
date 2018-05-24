@@ -19,7 +19,7 @@
 package org.wso2.carbon.identity.x509Certificate.validation;
 
 /**
- * X509 Certificate validation constants.
+ * This holds the X509 Certificate validation constants.
  */
 public class X509CertificateValidationConstants {
 
@@ -50,4 +50,5 @@ public class X509CertificateValidationConstants {
 
     private X509CertificateValidationConstants() {
     }
+
 }

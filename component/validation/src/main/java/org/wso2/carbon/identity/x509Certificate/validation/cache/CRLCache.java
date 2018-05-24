@@ -22,7 +22,7 @@ import org.wso2.carbon.identity.application.common.cache.BaseCache;
 import org.wso2.carbon.utils.CarbonUtils;
 
 /**
- * CRLCache with X509CRL entries against CRL URLs
+ * CRLCache with X509CRL entries against CRL URLs.
  */
 public class CRLCache extends BaseCache<String, CRLCacheEntry> {
 
@@ -31,9 +31,15 @@ public class CRLCache extends BaseCache<String, CRLCacheEntry> {
     private static volatile CRLCache instance;
 
     private CRLCache() {
+
         super(CRL_CACHE_NAME);
     }
 
+    /**
+     * Get CRLCache instance.
+     *
+     * @return CRLCache instance
+     */
     public static CRLCache getInstance() {
 
         CarbonUtils.checkSecurity();

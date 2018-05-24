@@ -28,22 +28,71 @@ import java.security.cert.X509Certificate;
  */
 public interface RevocationValidator {
 
-    public RevocationStatus checkRevocationStatus(X509Certificate peerCert, X509Certificate issuerCert, int retryCount)
+    /**
+     * Checks revocation status of the peer certificate.
+     *
+     * @param peerCert   peer certificate
+     * @param issuerCert issuer certificate
+     * @param retryCount retry count
+     * @return revocation status
+     * @throws CertificateValidationException certificateValidationException
+     */
+    RevocationStatus checkRevocationStatus(X509Certificate peerCert, X509Certificate issuerCert, int retryCount)
             throws CertificateValidationException;
 
-    public boolean isEnable();
+    /**
+     * Check whether the revocation validator is enabled.
+     *
+     * @return true if revocation validator is enabled
+     */
+    boolean isEnable();
 
-    public void setEnable(boolean enabled);
+    /**
+     * Set whether the revocation validator to be enabled or not.
+     *
+     * @param enabled true if revocation validator is to be enabled
+     */
+    void setEnable(boolean enabled);
 
-    public int getPriority();
+    /**
+     * Get priority of the revocation validator.
+     *
+     * @return priority of the revocation validator
+     */
+    int getPriority();
 
-    public void setPriority(int priority);
+    /**
+     * Set priority of the revocation validator.
+     *
+     * @param priority priority of the revocation validator
+     */
+    void setPriority(int priority);
 
-    public boolean isFullChainValidationEnable();
+    /**
+     * Check whether full chain validation enabled.
+     *
+     * @return true if full chain validation enabled
+     */
+    boolean isFullChainValidationEnable();
 
-    public void setFullChainValidation(boolean fullChainValidationEnabled);
+    /**
+     * Set whether full chain validation enabled or not.
+     *
+     * @param fullChainValidationEnabled true if full chain validation to be enabled
+     */
+    void setFullChainValidation(boolean fullChainValidationEnabled);
 
-    public int getRetryCount();
+    /**
+     * Get revocation validator retry count.
+     *
+     * @return validator retry count
+     */
+    int getRetryCount();
 
-    public void setRetryCount(int retryCount);
+    /**
+     * Set revocation validator retry count.
+     *
+     * @param retryCount revocation validator retry count
+     */
+    void setRetryCount(int retryCount);
 }

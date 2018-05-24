@@ -27,6 +27,13 @@ import java.security.cert.X509Certificate;
  */
 public interface RevocationValidationManager {
 
+    /**
+     * Verify the revocation status of an X509 certificate.
+     *
+     * @param peerCertificate x509 certificate
+     * @return revocation status of the x509
+     * @throws CertificateValidationException certificateValidationException
+     */
     boolean verifyRevocationStatus(X509Certificate peerCertificate) throws CertificateValidationException;
 
 }

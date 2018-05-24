@@ -41,10 +41,12 @@ import org.wso2.carbon.user.core.service.RealmService;
         name = "validation.X509Certificate.service",
         immediate = true)
 public class X509CertificateValidationServiceComponent {
+
     private static Log log = LogFactory.getLog(X509CertificateValidationServiceComponent.class);
 
     @Activate
     protected void activate(ComponentContext context) {
+
         context.getBundleContext().registerService(RevocationValidationManager.class.getName(),
                 new RevocationValidationManagerImpl(), null);
         CertificateValidationUtil.addDefaultValidationConfigInRegistry(null);
@@ -58,6 +60,7 @@ public class X509CertificateValidationServiceComponent {
 
     @Deactivate
     protected void deactivate(ComponentContext componentContext) {
+
         if (log.isDebugEnabled()) {
             log.debug("X509 Certificate Validation bundle is de-activated.");
         }
@@ -70,14 +73,16 @@ public class X509CertificateValidationServiceComponent {
             policy = ReferencePolicy.DYNAMIC,
             unbind = "unsetRegistryService")
     protected void setRegistryService(RegistryService registryService) {
+
         CertValidationDataHolder.getInstance().setRegistryService(registryService);
     }
 
     protected void unsetRegistryService(RegistryService registryService) {
+
         if (log.isDebugEnabled()) {
             log.debug("Unset Registry service.");
         }
-        CertValidationDataHolder.getInstance().unsetRegistryService();
+        CertValidationDataHolder.getInstance().setRegistryService(null);
     }
 
     @Reference(
@@ -87,6 +92,7 @@ public class X509CertificateValidationServiceComponent {
             policy = ReferencePolicy.DYNAMIC,
             unbind = "unsetRealmService")
     protected void setRealmService(RealmService realmService) {
+
         if (log.isDebugEnabled()) {
             log.debug("Setting the Realm Service");
         }
@@ -94,10 +100,11 @@ public class X509CertificateValidationServiceComponent {
     }
 
     protected void unsetRealmService(RealmService realmService) {
+
         if (log.isDebugEnabled()) {
             log.debug("UnSetting the Realm Service");
         }
-        CertValidationDataHolder.getInstance().unsetRealmService();
+        CertValidationDataHolder.getInstance().setRealmService(null);
     }
 
 }

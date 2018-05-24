@@ -21,14 +21,17 @@ package org.wso2.carbon.identity.x509Certificate.validation;
 public class CertificateValidationException extends Exception {
 
     public CertificateValidationException(String message) {
+
         super(message);
     }
 
     public CertificateValidationException(Throwable throwable) {
+
         super(throwable);
     }
 
     public CertificateValidationException(String message, Throwable throwable) {
+
         super(message, throwable);
     }
 }

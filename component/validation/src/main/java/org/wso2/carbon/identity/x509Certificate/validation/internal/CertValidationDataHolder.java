@@ -22,7 +22,7 @@ import org.wso2.carbon.registry.core.service.RegistryService;
 import org.wso2.carbon.user.core.service.RealmService;
 
 /**
- * Data holder for certificate revocation validation component
+ * Data holder for certificate revocation validation component.
  */
 public class CertValidationDataHolder {
 
@@ -33,31 +33,54 @@ public class CertValidationDataHolder {
     private CertValidationDataHolder() {
     }
 
+    /**
+     * Get certificate validation data holder instance.
+     *
+     * @return CertValidationDataHolder instance
+     */
     public static CertValidationDataHolder getInstance() {
+
         return instance;
     }
 
+    /**
+     * Get registry service.
+     *
+     * @return registry service
+     */
     public RegistryService getRegistryService() {
+
         return registryService;
     }
 
+    /**
+     * Set registry service.
+     *
+     * @param service registry service
+     */
     public void setRegistryService(RegistryService service) {
-        registryService = service;
+
+        this.registryService = service;
     }
 
-    public void unsetRegistryService() {
-        registryService = null;
-    }
-
+    /**
+     * Get realm service.
+     *
+     * @return realm service
+     */
     public RealmService getRealmService() {
+
         return realmService;
     }
 
+    /**
+     * Set realm service.
+     *
+     * @param realmService realm service
+     */
     public void setRealmService(RealmService realmService) {
-        CertValidationDataHolder.realmService = realmService;
+
+        this.realmService = realmService;
     }
 
-    public void unsetRealmService() {
-        realmService = null;
-    }
 }

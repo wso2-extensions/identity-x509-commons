@@ -31,32 +31,69 @@ public class CACertificate {
     private X509Certificate x509Certificate;
 
     public CACertificate(List<String> crlUrls, List<String> ocspUrls, X509Certificate x509Certificate) {
+
         this.crlUrls = crlUrls;
         this.ocspUrls = ocspUrls;
         this.x509Certificate = x509Certificate;
     }
 
+    /**
+     * Get CRL Urls.
+     *
+     * @return list of CRL Urls
+     */
     public List<String> getCrlUrl() {
+
         return crlUrls;
     }
 
+    /**
+     * Set CRL Urls.
+     *
+     * @param crlUrls list of CRL Urls
+     */
     public void setCrlUrl(List<String> crlUrls) {
+
         this.crlUrls = crlUrls;
     }
 
+    /**
+     * Get OCSP Urls.
+     *
+     * @return list of OCSP Urls
+     */
     public List<String> getOcspUrl() {
+
         return ocspUrls;
     }
 
+    /**
+     * Set OCSP Urls.
+     *
+     * @param ocspUrls list of OCSP Urls
+     */
     public void setOcspUrl(List<String> ocspUrls) {
+
         this.ocspUrls = ocspUrls;
     }
 
+    /**
+     * Get X509 certificate.
+     *
+     * @return X509 certificate
+     */
     public X509Certificate getX509Certificate() {
+
         return x509Certificate;
     }
 
+    /**
+     * Set X509 certificate.
+     *
+     * @param x509Certificate X509 certificate
+     */
     public void setX509Certificate(X509Certificate x509Certificate) {
+
         this.x509Certificate = x509Certificate;
     }
 }

@@ -52,59 +52,75 @@ public class RevocationValidationManagerImpl implements RevocationValidationMana
     @Override
     public boolean verifyRevocationStatus(X509Certificate peerCertificate) throws CertificateValidationException {
 
-        List<RevocationValidator> revocationValidators = CertificateValidationUtil.loadValidatorConfigFromRegistry();
-        Collections.sort(revocationValidators, revocationValidatorComparator);
-        int validatorCount = revocationValidators.size();
+        List<RevocationValidator> enabledRevocationValidators =
+                CertificateValidationUtil.loadEnabledValidatorConfigFromRegistry();
+        Collections.sort(enabledRevocationValidators, revocationValidatorComparator);
+        int validatorCount = enabledRevocationValidators.size();
 
-        for (RevocationValidator validator : revocationValidators) {
+        for (RevocationValidator validator : enabledRevocationValidators) {
             --validatorCount;
-            if (validator.isEnable()) {
-                try {
-                    return checkValidity(validator, peerCertificate);
-                } catch (CertificateValidationException e) {
-                    if (validatorCount <= 0) {
-                        throw e;
-                    }
+            try {
+                return isRevoked(validator, peerCertificate);
+            } catch (CertificateValidationException e) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Certificate validation is not successful.", e);
+                }
+                if (validatorCount <= 0) {
+                    throw new CertificateValidationException("Couldn't validate the certificate revocation from" +
+                            "any of the validators.", e);
                 }
             }
         }
         return false;
     }
 
-    private boolean checkValidity(RevocationValidator validator, X509Certificate certificate)
+    private boolean isRevoked(RevocationValidator validator, X509Certificate certificate)
             throws CertificateValidationException {
 
-        log.info("X509 Certificate validation with " + validator.getClass().getName());
+        log.info("X509 Certificate validation with " + validator.getClass().getSimpleName());
         List<CACertificate> caCertificateList = CertificateValidationUtil.loadCaCertsFromRegistry(certificate);
         for (CACertificate caCertificate : caCertificateList) {
             RevocationStatus revocationStatus;
             try {
-                revocationStatus = validator.checkRevocationStatus(certificate,
-                        caCertificate.getX509Certificate(), validator.getRetryCount());
+                revocationStatus = validator.checkRevocationStatus(certificate, caCertificate.getX509Certificate(),
+                        validator.getRetryCount());
             } catch (CertificateValidationException e) {
                 if (log.isDebugEnabled()) {
-                    log.debug("Error when validation certificate revocation with " + validator.getClass().getName() +
-                            ". So check with the next CA certificate in the list.", e);
+                    log.debug("Error when validation certificate revocation with " +
+                            validator.getClass().getSimpleName() + ". So check with the next CA certificate in the " +
+                            "list.", e);
                 }
                 continue;
             }
 
             if (RevocationStatus.UNKNOWN.equals(revocationStatus)) {
-                // indication that the OCSP Responder/CRL URls has no information about the requested certificate.
                 if (log.isDebugEnabled()) {
-                    log.debug("Error when validation certificate revocation with " + validator.getClass().getName() +
-                            ". So check with the next CA certificate in the list.");
+                    log.debug("OCSP Responder/CRL Urls has no information about the requested certificate with " +
+                            "serial num: " + certificate.getSerialNumber() + "So check with the next CA certificate " +
+                            "in the list.");
                 }
             } else if (RevocationStatus.REVOKED.equals(revocationStatus)) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Certificate with serial num: " + certificate.getSerialNumber() + " is revoked.");
+                }
                 return true;
-            } else if (validator.isFullChainValidationEnable() && !caCertificate.getX509Certificate().getIssuerDN().equals
-                    (caCertificate.getX509Certificate().getSubjectDN())) {
-                return checkValidity(validator, caCertificate.getX509Certificate());
+            } else if (validator.isFullChainValidationEnable() && !caCertificate.getX509Certificate().getIssuerDN()
+                    .equals(caCertificate.getX509Certificate().getSubjectDN())) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Full chain validation is enabled and validating CA certificate with serial num: " +
+                            caCertificate.getX509Certificate().getSerialNumber());
+                }
+                return isRevoked(validator, caCertificate.getX509Certificate());
             } else if (RevocationStatus.GOOD.equals(revocationStatus)) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Certificate with serial num: " + certificate.getSerialNumber() + " is not revoked.");
+                }
                 return false;
             }
         }
-        throw new CertificateValidationException("Cannot check revocation status of the certificate.");
+        throw new CertificateValidationException("Validator: " + validator.getClass().getSimpleName() +
+                "couldn't validate the revocation status of certificate with serial num: " +
+                certificate.getSerialNumber());
     }
 
 }

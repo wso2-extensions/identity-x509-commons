@@ -18,16 +18,27 @@
 
 package org.wso2.carbon.identity.x509Certificate.validation;
 
+/**
+ * This is used to get Revocation Status message.
+ */
 public enum RevocationStatus {
 
     GOOD("Good"), UNKNOWN("Unknown"), REVOKED("Revoked"),;
     private String message;
 
-    private RevocationStatus(String message) {
+    RevocationStatus(String message) {
+
         this.message = message;
     }
 
+    /**
+     * Get revocation status message.
+     *
+     * @return status message
+     */
     public String getMessage() {
+
         return message;
     }
+
 }
