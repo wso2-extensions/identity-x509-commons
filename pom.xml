@@ -41,8 +41,7 @@
     </scm>
 
     <modules>
-        <module>component/validation</module>
-        <!--module>feature</module-->
+        <module>components/validation</module>
     </modules>
 
     <repositories>
