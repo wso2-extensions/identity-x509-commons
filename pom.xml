@@ -40,6 +40,10 @@
         <tag>org.wso2.carbon.extension.identity.x509certificate.revocation-1.0.0</tag>
     </scm>
 
+    <modules>
+        <module>components/validation</module>
+    </modules>
+
     <repositories>
         <repository>
             <id>wso2-nexus</id>
