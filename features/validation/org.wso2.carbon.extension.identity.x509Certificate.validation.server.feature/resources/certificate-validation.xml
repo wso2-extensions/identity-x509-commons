@@ -21,8 +21,8 @@
 </Validators>
 
 <!-- Trust stores with certificates of CAs and intermediate CAs which are to be considered as trusted CAs for X509 certificate validation with CRL and OCSP --> 
-<TrustStores>
+<!--TrustStores>
     <TrustStore truststoreFile="<trustStore_file_path>" truststorePass="<trustStore_password>" type="JKS"/>
-</TrustStores>
+</TrustStores-->
 </CertificateValidation>
 
