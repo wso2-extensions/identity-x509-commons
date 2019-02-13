@@ -42,6 +42,7 @@
     <modules>
         <module>components/validation</module>
         <module>features/validation</module>
+        <module>components/valve</module>
     </modules>
 
     <repositories>
@@ -151,9 +152,43 @@
                 <version>${httpcomponents-httpclient.wso2.version}</version>
             </dependency>
             <dependency>
+                <groupId>org.wso2.carbon.identity.framework</groupId>
+                <artifactId>org.wso2.carbon.identity.core</artifactId>
+                <version>${carbon.identity.framework.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.wso2.carbon.extension.identity.x509certificate</groupId>
                 <artifactId>org.wso2.carbon.extension.identity.x509Certificate.validation</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.powermock</groupId>
+                <artifactId>powermock-module-testng</artifactId>
+                <version>${powermock.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.powermock</groupId>
+                <artifactId>powermock-api-mockito</artifactId>
+                <version>${powermock.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tomcat</groupId>
+                <artifactId>tomcat-coyote</artifactId>
+                <version>${tomcat-coyote.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon.identity.framework</groupId>
+                <artifactId>org.wso2.carbon.identity.testutil</artifactId>
+                <version>${carbon.identity.framework.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>log4j-over-slf4j</artifactId>
+                <version>${slf4j.api.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -259,5 +294,14 @@
         <commons-lang.wso2.osgi.version.range>[2.6.0,3.0.0)</commons-lang.wso2.osgi.version.range>
         <commons-httpclient.wso2.osgi.version>[3.1.0,4.0.0)</commons-httpclient.wso2.osgi.version>
         <httpcomponents-httpclient.wso2.version>4.3.1.wso2v2</httpcomponents-httpclient.wso2.version>
+
+        <powermock.version>1.7.3</powermock.version>
+        <tomcat-coyote.version>7.0.81</tomcat-coyote.version>
+
+        <imp.pkg.version.javax.servlet>2.4.0</imp.pkg.version.javax.servlet>
+        <imp.pkg.version.apache.tomcat>[7.0.0, 9.0.0)</imp.pkg.version.apache.tomcat>
+        <slf4j.api.version>1.7.21</slf4j.api.version>
+
+
     </properties>
 </project>
