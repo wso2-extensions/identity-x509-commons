@@ -121,9 +121,9 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>org.bouncycastle</groupId>
+                <groupId>org.wso2.orbit.org.bouncycastle</groupId>
                 <artifactId>bcpkix-jdk15on</artifactId>
-                <version>${org.bouncycastle.version}</version>
+                <version>${bcpkix-jdk15.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.wso2.carbon</groupId>
@@ -284,7 +284,8 @@
 
         <apache.felix.scr.ds.annotations.version>1.2.8</apache.felix.scr.ds.annotations.version>
         <equinox.osgi.services.version>3.5.100.v20160504-1419</equinox.osgi.services.version>
-        <org.bouncycastle.version>1.52</org.bouncycastle.version>
+        <bcpkix-jdk15.version>1.60.0.wso2v1</bcpkix-jdk15.version>
+        <org.bouncycastle.imp.pkg.version.range>[1.52.0,2.0.0)</org.bouncycastle.imp.pkg.version.range>
 
         <osgi.service.component.imp.pkg.version.range>[1.2.0, 2.0.0)</osgi.service.component.imp.pkg.version.range>
         <osgi.service.http.imp.pkg.version.range>[1.2.1, 2.0.0)</osgi.service.http.imp.pkg.version.range>
