@@ -50,7 +50,7 @@ public class X509CertificateAuthenticationValve extends ValveBase {
     private static final String X509_HEADER_NAME = "javax.servlet.request.X509Certificate";
     private X509ServerConfiguration config = null;
 
-    private static Log log = LogFactory.getLog(X509CertificateAuthenticationValve.class);
+    private static final Log log = LogFactory.getLog(X509CertificateAuthenticationValve.class);
 
     @Override
     public void invoke(Request request, Response response) throws IOException, ServletException {
