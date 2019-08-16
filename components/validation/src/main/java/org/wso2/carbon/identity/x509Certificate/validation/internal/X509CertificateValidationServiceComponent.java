@@ -42,7 +42,7 @@ import org.wso2.carbon.user.core.service.RealmService;
         immediate = true)
 public class X509CertificateValidationServiceComponent {
 
-    private static Log log = LogFactory.getLog(X509CertificateValidationServiceComponent.class);
+    private static final Log log = LogFactory.getLog(X509CertificateValidationServiceComponent.class);
 
     @Activate
     protected void activate(ComponentContext context) {

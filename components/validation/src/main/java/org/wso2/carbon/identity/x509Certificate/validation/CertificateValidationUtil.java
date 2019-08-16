@@ -109,7 +109,7 @@ public class CertificateValidationUtil {
     private static final String BC = "BC";
     private static final String CONTENT_TYPE = "text/xml; charset=utf-8";
 
-    private static Log log = LogFactory.getLog(CertificateValidationUtil.class);
+    private static final Log log = LogFactory.getLog(CertificateValidationUtil.class);
 
     /**
      * ********************************************
