@@ -29,7 +29,7 @@ import javax.xml.namespace.QName;
 
 public class X509ServerConfiguration {
 
-    private static Log log = LogFactory.getLog(X509ServerConfiguration.class);
+    private static final Log log = LogFactory.getLog(X509ServerConfiguration.class);
     private static final X509ServerConfiguration INSTANCE = new X509ServerConfiguration();
     private static final String CONFIG_ELEM_X509 = "X509";
     private static final String CONFIG_ELEM_X509_REQUEST_HEADER = "X509RequestHeaderName";
