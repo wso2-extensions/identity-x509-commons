@@ -104,7 +104,6 @@ public class X509CertificateAuthenticationValveTest extends PowerMockIdentityBas
         setCertificate();
         invokeX509AuthenticationValve();
         assertNotNull(request.getAttribute(X_509_CERTIFICATE), "Error occurred in setting X509 Certificate");
-
     }
 
     private void setCertificate() throws CertificateException {
@@ -121,7 +120,6 @@ public class X509CertificateAuthenticationValveTest extends PowerMockIdentityBas
             X509Certificate[] certificates = new X509Certificate[]{certificate};
             request.setAttribute(X_509_CERTIFICATE, certificates);
             when(request.getAttribute(X_509_CERTIFICATE)).thenReturn(certificates);
-
         }
     }
 
@@ -141,7 +139,6 @@ public class X509CertificateAuthenticationValveTest extends PowerMockIdentityBas
                 assertTrue(e.getMessage().equals("Could not parse certificate: java.io.IOException: Empty input"),
                         "This is a valid pem format of certificate");
             }
-
         }
     }
 

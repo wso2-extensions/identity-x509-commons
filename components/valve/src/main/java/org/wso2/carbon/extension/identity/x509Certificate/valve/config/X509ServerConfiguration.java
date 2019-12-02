@@ -27,6 +27,9 @@ import org.wso2.carbon.utils.CarbonUtils;
 
 import javax.xml.namespace.QName;
 
+/**
+ * Runtime representation of the X509 Configuration as configured through identity.xml
+ */
 public class X509ServerConfiguration {
 
     private static final Log log = LogFactory.getLog(X509ServerConfiguration.class);
@@ -48,6 +51,8 @@ public class X509ServerConfiguration {
     }
 
     /**
+     * Get the name of the x509 request header according to the identity xml configuration value.
+     *
      * @return name of the X509 request header
      */
     public String getX509requestHeader() {
@@ -86,6 +91,4 @@ public class X509ServerConfiguration {
 
         return new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, localPart);
     }
-
 }
-
