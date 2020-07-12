@@ -1,0 +1,4 @@
+{
+  "certificate_validation.ocsp_validator_enabled": true,
+  "certificate_validation.crl_validator_enabled": true
+}

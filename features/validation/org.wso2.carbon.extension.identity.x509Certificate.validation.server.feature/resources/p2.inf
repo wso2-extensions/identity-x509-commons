@@ -3,3 +3,12 @@ org.eclipse.equinox.p2.touchpoint.natives.mkdir(path:${installFolder}/../../../r
 org.eclipse.equinox.p2.touchpoint.natives.mkdir(path:${installFolder}/../../../repository/conf); \
 org.eclipse.equinox.p2.touchpoint.natives.mkdir(path:${installFolder}/../../../repository/conf/security); \
 org.eclipse.equinox.p2.touchpoint.natives.copy(source:${installFolder}/../features/org.wso2.carbon.extension.identity.x509Certificate.validation.server_${feature.version}/certificate-validation.xml,target:${installFolder}/../../conf/security/certificate-validation.xml,overwrite:true);\
+org.eclipse.equinox.p2.touchpoint.natives.mkdir(path:${installFolder}/../../../repository); \
+org.eclipse.equinox.p2.touchpoint.natives.mkdir(path:${installFolder}/../../../repository/resources); \
+org.eclipse.equinox.p2.touchpoint.natives.mkdir(path:${installFolder}/../../../repository/resources/conf); \
+org.eclipse.equinox.p2.touchpoint.natives.mkdir(path:${installFolder}/../../../repository/resources/conf/templates); \
+org.eclipse.equinox.p2.touchpoint.natives.mkdir(path:${installFolder}/../../../repository/resources/conf/templates/repository); \
+org.eclipse.equinox.p2.touchpoint.natives.mkdir(path:${installFolder}/../../../repository/resources/conf/templates/repository/conf); \
+org.eclipse.equinox.p2.touchpoint.natives.mkdir(path:${installFolder}/../../../repository/resources/conf/templates/repository/conf/security); \
+org.eclipse.equinox.p2.touchpoint.natives.copy(source:${installFolder}/../features/org.wso2.carbon.extension.identity.x509Certificate.validation.server_${feature.version}/certificate-validation.xml.j2,target:${installFolder}/../../resources/conf/templates/repository/conf/security/certificate-validation.xml.j2,overwrite:true);\
+org.eclipse.equinox.p2.touchpoint.natives.copy(source:${installFolder}/../features/org.wso2.carbon.extension.identity.x509Certificate.validation.server_${feature.version}/org.wso2.carbon.extension.identity.x509Certificate.validation.server.feature.default.json,target:${installFolder}/../../resources/conf/org.wso2.carbon.extension.identity.x509Certificate.validation.server.feature.default.json,overwrite:true);\
