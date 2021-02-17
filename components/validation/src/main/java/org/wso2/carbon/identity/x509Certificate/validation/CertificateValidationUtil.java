@@ -36,15 +36,7 @@ import org.bouncycastle.asn1.DERIA5String;
 import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.ocsp.OCSPObjectIdentifiers;
 import org.bouncycastle.asn1.ocsp.OCSPResponseStatus;
-import org.bouncycastle.asn1.x509.AccessDescription;
-import org.bouncycastle.asn1.x509.AuthorityInformationAccess;
-import org.bouncycastle.asn1.x509.CRLDistPoint;
-import org.bouncycastle.asn1.x509.DistributionPoint;
-import org.bouncycastle.asn1.x509.DistributionPointName;
-import org.bouncycastle.asn1.x509.Extension;
-import org.bouncycastle.asn1.x509.Extensions;
-import org.bouncycastle.asn1.x509.GeneralName;
-import org.bouncycastle.asn1.x509.GeneralNames;
+import org.bouncycastle.asn1.x509.*;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.ocsp.BasicOCSPResp;
 import org.bouncycastle.cert.ocsp.CertificateID;
@@ -885,10 +877,12 @@ public class CertificateValidationUtil {
             for (AccessDescription accessDescription : accessDescriptions) {
 
                 GeneralName gn = accessDescription.getAccessLocation();
+                if(accessDescription.getAccessMethod().equals(X509ObjectIdentifiers.ocspAccessMethod)){
                 if (gn.getTagNo() == GeneralName.uniformResourceIdentifier) {
                     DERIA5String str = DERIA5String.getInstance(gn.getName());
                     String accessLocation = str.getString();
                     ocspUrlList.add(accessLocation);
+                }
                 }
             }
         }
