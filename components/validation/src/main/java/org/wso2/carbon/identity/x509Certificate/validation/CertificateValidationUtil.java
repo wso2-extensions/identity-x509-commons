@@ -884,13 +884,13 @@ public class CertificateValidationUtil {
         if (authorityInformationAccess != null) {
             accessDescriptions = authorityInformationAccess.getAccessDescriptions();
             for (AccessDescription accessDescription : accessDescriptions) {
-
-                GeneralName gn = accessDescription.getAccessLocation();
-                if (gn.getTagNo() == GeneralName.uniformResourceIdentifier &&
-                        accessDescription.getAccessMethod().equals(X509ObjectIdentifiers.ocspAccessMethod)) {
-                    DERIA5String str = DERIA5String.getInstance(gn.getName());
-                    String accessLocation = str.getString();
-                    ocspUrlList.add(accessLocation);
+                if (X509ObjectIdentifiers.ocspAccessMethod.equals(accessDescription.getAccessMethod())) {
+                    GeneralName gn = accessDescription.getAccessLocation();
+                    if (gn.getTagNo() == GeneralName.uniformResourceIdentifier) {
+                        DERIA5String str = DERIA5String.getInstance(gn.getName());
+                        String accessLocation = str.getString();
+                        ocspUrlList.add(accessLocation);
+                    }
                 }
             }
         }
