@@ -886,7 +886,7 @@ public class CertificateValidationUtil {
             for (AccessDescription accessDescription : accessDescriptions) {
                 if (X509ObjectIdentifiers.ocspAccessMethod.equals(accessDescription.getAccessMethod())) {
                     GeneralName gn = accessDescription.getAccessLocation();
-                    if (gn.getTagNo() == GeneralName.uniformResourceIdentifier) {
+                    if (gn != null && gn.getTagNo() == GeneralName.uniformResourceIdentifier) {
                         DERIA5String str = DERIA5String.getInstance(gn.getName());
                         String accessLocation = str.getString();
                         ocspUrlList.add(accessLocation);
