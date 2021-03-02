@@ -886,12 +886,11 @@ public class CertificateValidationUtil {
             for (AccessDescription accessDescription : accessDescriptions) {
 
                 GeneralName gn = accessDescription.getAccessLocation();
-                if(accessDescription.getAccessMethod().equals(X509ObjectIdentifiers.ocspAccessMethod)){
-                if (gn.getTagNo() == GeneralName.uniformResourceIdentifier) {
+                if (gn.getTagNo() == GeneralName.uniformResourceIdentifier &&
+                        accessDescription.getAccessMethod().equals(X509ObjectIdentifiers.ocspAccessMethod)) {
                     DERIA5String str = DERIA5String.getInstance(gn.getName());
                     String accessLocation = str.getString();
                     ocspUrlList.add(accessLocation);
-                }
                 }
             }
         }
