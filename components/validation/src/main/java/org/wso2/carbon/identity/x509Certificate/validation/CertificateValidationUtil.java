@@ -45,6 +45,7 @@ import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.Extensions;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.asn1.x509.GeneralNames;
+import org.bouncycastle.asn1.x509.X509ObjectIdentifiers;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.ocsp.BasicOCSPResp;
 import org.bouncycastle.cert.ocsp.CertificateID;
@@ -883,12 +884,13 @@ public class CertificateValidationUtil {
         if (authorityInformationAccess != null) {
             accessDescriptions = authorityInformationAccess.getAccessDescriptions();
             for (AccessDescription accessDescription : accessDescriptions) {
-
-                GeneralName gn = accessDescription.getAccessLocation();
-                if (gn.getTagNo() == GeneralName.uniformResourceIdentifier) {
-                    DERIA5String str = DERIA5String.getInstance(gn.getName());
-                    String accessLocation = str.getString();
-                    ocspUrlList.add(accessLocation);
+                if (X509ObjectIdentifiers.ocspAccessMethod.equals(accessDescription.getAccessMethod())) {
+                    GeneralName gn = accessDescription.getAccessLocation();
+                    if (gn != null && gn.getTagNo() == GeneralName.uniformResourceIdentifier) {
+                        DERIA5String str = DERIA5String.getInstance(gn.getName());
+                        String accessLocation = str.getString();
+                        ocspUrlList.add(accessLocation);
+                    }
                 }
             }
         }
