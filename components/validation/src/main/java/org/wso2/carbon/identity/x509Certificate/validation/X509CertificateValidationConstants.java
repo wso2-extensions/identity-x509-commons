@@ -42,6 +42,8 @@ public class X509CertificateValidationConstants {
     public static final String CA_CERT_REG_CRL = "crl";
     public static final String CA_CERT_REG_OCSP = "ocsp";
     public static final String CA_CERT_REG_CRL_OCSP_SEPERATOR = ",";
+    public static final String OCSP_VALIDATOR = "OCSPValidator";
+    public static final String CRL_VALIDATOR = "CRLValidator";
 
     public static final String HTTP_CONTENT_TYPE = "Content-Type";
     public static final String HTTP_CONTENT_TYPE_OCSP = "application/ocsp-request";
