@@ -478,7 +478,7 @@ public class CertificateValidationUtil {
                         if (X509CertificateValidationConstants.OCSP_VALIDATOR.equals(validator.getDisplayName())) {
                             ocspUrls = getAIALocations(certificate);
                         }
-                        if (X509CertificateValidationConstants.CRL_VALIDATOR.equals(validator.getDisplayName())) {
+                        else if (X509CertificateValidationConstants.CRL_VALIDATOR.equals(validator.getDisplayName())) {
                             crlUrls = getCRLUrls(certificate);
                         }
                     }
