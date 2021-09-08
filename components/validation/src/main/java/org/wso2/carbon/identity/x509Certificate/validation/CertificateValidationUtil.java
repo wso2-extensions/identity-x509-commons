@@ -132,14 +132,21 @@ public class CertificateValidationUtil {
 
                 OMElement documentElement = builder.getDocumentElement();
                 Iterator iterator = documentElement.getChildElements();
+                OMElement validatorChildElement = null;
+                OMElement trustStoresElement = null;
                 while (iterator.hasNext()) {
                     OMElement childElement = (OMElement) iterator.next();
                     if (isValidatorConfigProperty(childElement)) {
+                        validatorChildElement = childElement;
                         addDefaultValidatorConfig(childElement, tenantDomain);
                     } else if (isTrustStoreConfigProperty(childElement)) {
-                        addDefaultCACertificates(childElement, tenantDomain);
+                        trustStoresElement = childElement;
                     }
                 }
+                if (trustStoresElement != null) {
+                    addDefaultCACertificates(trustStoresElement, validatorChildElement, tenantDomain);
+                }
+
             } catch (XMLStreamException | FileNotFoundException e) {
                 log.warn("Error while loading default validator configurations to the registry.", e);
             } finally {
@@ -375,7 +382,8 @@ public class CertificateValidationUtil {
         return caCertificateList;
     }
 
-    private static void addDefaultCACertificates(OMElement trustStoresElement, String tenantDomain) {
+    private static void addDefaultCACertificates(OMElement trustStoresElement, OMElement validatorChildElement,
+                                                 String tenantDomain) {
 
         try {
             Iterator trustStoreIterator = trustStoresElement.getChildElements();
@@ -391,7 +399,7 @@ public class CertificateValidationUtil {
                 if (log.isDebugEnabled()) {
                     log.debug("CA certificate registry path: " + caCertRegPath);
                 }
-                addDefaultCACertificateInRegistry(registry, caCertRegPath, certificate);
+                addDefaultCACertificateInRegistry(registry, caCertRegPath, certificate, validatorChildElement);
             }
 
         } catch (UnsupportedEncodingException | CertificateValidationException e) {
@@ -458,13 +466,25 @@ public class CertificateValidationUtil {
     }
 
     private static void addDefaultCACertificateInRegistry(Registry registry, String caCertRegPath,
-                                                          X509Certificate certificate)
+                                                          X509Certificate certificate, OMElement validatorChildElement)
             throws CertificateValidationException {
 
+        List<String> ocspUrls = new ArrayList<>();
+        List<String> crlUrls = new ArrayList<>();
         try {
             if (!registry.resourceExists(caCertRegPath)) {
+                List<Validator> defaultValidatorConfig = getDefaultValidatorConfig(validatorChildElement);
+                for (Validator validator : defaultValidatorConfig) {
+                    if (validator.isEnabled()) {
+                        if (X509CertificateValidationConstants.OCSP_VALIDATOR.equals(validator.getDisplayName())) {
+                            ocspUrls = getAIALocations(certificate);
+                        }
+                        else if (X509CertificateValidationConstants.CRL_VALIDATOR.equals(validator.getDisplayName())) {
+                            crlUrls = getCRLUrls(certificate);
+                        }
+                    }
+                }
                 Resource resource = registry.newResource();
-                List<String> crlUrls = getCRLUrls(certificate);
                 StringBuilder crlUrlReg = new StringBuilder();
                 if (CollectionUtils.isNotEmpty(crlUrls)) {
                     for (String crlUrl : crlUrls) {
@@ -473,7 +493,6 @@ public class CertificateValidationUtil {
                     }
                 }
 
-                List<String> ocspUrls = getAIALocations(certificate);
                 StringBuilder ocspUrlReg = new StringBuilder();
                 if (CollectionUtils.isNotEmpty(ocspUrls)) {
                     for (String ocspUrl : ocspUrls) {
