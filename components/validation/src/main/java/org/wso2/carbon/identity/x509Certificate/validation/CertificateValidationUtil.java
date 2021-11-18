@@ -585,18 +585,16 @@ public class CertificateValidationUtil {
                 if (x509CRL != null) {
                     if (isValidX509Crl(x509CRL, peerCert)) {
                         if (log.isDebugEnabled()) {
-                            log.debug("CRL is taking from cache.");
+                            log.debug("CRL is taken from cache.");
                         }
                         return getRevocationStatusFromCRL(x509CRL, peerCert);
-                    } else {
-                        if (log.isDebugEnabled()) {
-                            log.debug("CRL is too old. Removing from cache.");
-                        }
-                        CRLCache.getInstance().clearCacheEntry(crlUrl);
-                    }
+                    } 
                 }
 
-                x509CRL = downloadCRLFromWeb(crlUrl, retryCount, peerCert);
+                x509CRL = downloadCRLFromWeb(crlUrl, retryCount);
+                if (x509CRL != null && !isValidX509CRLFromIssuerDN(x509CRL,peerCert)) {
+                	x509CRL = null;
+                }
                 if (x509CRL != null) {
                     addCRLToCache(crlUrl, x509CRL);
                     if (log.isDebugEnabled()) {
@@ -605,8 +603,8 @@ public class CertificateValidationUtil {
                     return getRevocationStatusFromCRL(x509CRL, peerCert);
                 }
             } catch (Exception e) {
-                log.info("Either url is bad or cant build X509CRL. So check with the next url in the list.");
                 if (log.isDebugEnabled()) {
+                	log.debug("Either url is bad or cant build X509CRL. So check with the next url in the list.");
                     log.debug("Error when getting the X509 CRL for certificate: " + peerCert.getSerialNumber(), e);
                 }
             }
@@ -639,8 +637,7 @@ public class CertificateValidationUtil {
         }
     }
 
-    private static boolean isValidX509CRLFromNextUpdate(X509CRL x509CRL, Date currentDate, Date nextUpdate)
-            throws CertificateValidationException {
+    private static boolean isValidX509CRLFromNextUpdate(X509CRL x509CRL, Date currentDate, Date nextUpdate) {
 
         if (nextUpdate != null) {
             if (log.isDebugEnabled()) {
@@ -649,19 +646,12 @@ public class CertificateValidationUtil {
             }
             if (currentDate.before(x509CRL.getNextUpdate())) {
                 return true;
-            } else {
-                throw new CertificateValidationException("X509 CRL is not valid. Next update date: " +
-                        nextUpdate.toString() + " is before the current date: " + currentDate.toString());
-            }
-        } else {
-            if (log.isDebugEnabled()) {
-                log.debug("Couldn't validate the X509 CRL, next update date is not available.");
-            }
-        }
+            } 
+        } 
         return false;
     }
 
-    private static X509CRL downloadCRLFromWeb(String crlURL, int retryCount, X509Certificate peerCert)
+    public static X509CRL downloadCRLFromWeb(String crlURL, int retryCount)
             throws IOException, CertificateValidationException {
 
         InputStream crlStream = null;
@@ -675,9 +665,7 @@ public class CertificateValidationUtil {
                 log.debug("CRL is downloaded from CRL Url: " + crlURL);
             }
 
-            if (isValidX509Crl(x509CRLDownloaded, peerCert)) {
-                x509CRL = x509CRLDownloaded;
-            }
+            x509CRL = x509CRLDownloaded;
         } catch (MalformedURLException e) {
             throw new CertificateValidationException("CRL Url is malformed", e);
         } catch (IOException e) {
@@ -687,7 +675,7 @@ public class CertificateValidationUtil {
                 if (log.isDebugEnabled()) {
                     log.debug("Cant reach CRL Url: " + crlURL + ". Retrying to connect - attempt " + retryCount);
                 }
-                downloadCRLFromWeb(crlURL, --retryCount, peerCert);
+                downloadCRLFromWeb(crlURL, --retryCount);
             }
         } catch (CertificateException e) {
             throw new CertificateValidationException("Error when generating certificate factory.", e);
@@ -764,6 +752,33 @@ public class CertificateValidationUtil {
         CRLCacheEntry crlCacheValue = CRLCache.getInstance().getValueFromCache(crlUrl);
         if (crlCacheValue != null) {
             x509CRL = crlCacheValue.getX509CRL();
+            if (x509CRL == null) {  // Should never happen
+            	return x509CRL;
+            }
+            boolean updateNeeded = !isValidX509CRLFromNextUpdate(x509CRL, new Date(), x509CRL.getNextUpdate()); // Check if past nextUpdate from CRL
+            if (!updateNeeded && x509CRL.getNextUpdate() == null) { // Handle case where CRL does not have nextUpdate set
+            	if (crlCacheValue.getNextUpdate().getTime() < System.currentTimeMillis()) {
+            		updateNeeded = true;
+            	}
+            }
+            if (updateNeeded) { // Then start thread to update in background. Wait up to 2 seconds for update to finish. Otherwise use old cache entry
+            	CacheEntryUpdate updater = new CacheEntryUpdate(crlUrl, crlCacheValue);
+            	Thread thread = new Thread(updater);
+            	thread.start();
+            	int count = 20;
+            	while (count-- > 0 && thread.isAlive()) {  // Check every 100 milliseconds if conplete for 2 seconds
+            		try {
+						Thread.sleep(100);
+					} catch (InterruptedException e) {
+						log.debug("Sleep interrupted");
+					}
+            	}
+            	if (!thread.isAlive()) {  //If the update thread has finished, grab the new CRL to return
+            		x509CRL = crlCacheValue.getX509CRL();
+            	} else {
+            		log.warn("Unable to update CRL cache in 2 seconds. Using old cache for " + crlUrl);
+            	}
+            }
         }
         return x509CRL;
     }

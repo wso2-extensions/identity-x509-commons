@@ -20,6 +20,7 @@ package org.wso2.carbon.identity.x509Certificate.validation.cache;
 
 import java.io.Serializable;
 import java.security.cert.X509CRL;
+import java.util.Date;
 
 /**
  * CRL cache entry with X509CRL.
@@ -29,6 +30,10 @@ public class CRLCacheEntry implements Serializable {
     private static final long serialVersionUID = 1591693579088522864L;
 
     private X509CRL x509CRL;
+    
+    private boolean updateInProgress = false;  // Used as key for Singleton Update flow
+    
+    private Date nextUpdate;  // In case CRL does not have nextUpdate, this will be used. Always set to 24 hours after setX509CRL is called.
 
     /**
      * Get X509 CRL.
@@ -48,5 +53,19 @@ public class CRLCacheEntry implements Serializable {
     public void setX509CRL(X509CRL x509CRL) {
 
         this.x509CRL = x509CRL;
+        nextUpdate = new Date(System.currentTimeMillis()+ (3600000));
     }
+
+	public boolean isUpdateInProgress() {
+		return updateInProgress;
+	}
+
+	public void setUpdateInProgress(boolean updateInProgress) {
+		this.updateInProgress = updateInProgress;
+	}
+
+	public Date getNextUpdate() {
+		return nextUpdate;
+	}
+
 }
