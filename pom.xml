@@ -60,7 +60,7 @@
                 <version>${carbon.kernel.version}</version>
                 <exclusions>
                     <exclusion>
-                        <groupId>org.ops4j.pax.logging</groupId>
+                        <groupId>org.wso2.org.ops4j.pax.logging</groupId>
                         <artifactId>pax-logging-api</artifactId>
                     </exclusion>
                 </exclusions>
@@ -90,6 +90,12 @@
                 <groupId>org.wso2.carbon.identity.framework</groupId>
                 <artifactId>org.wso2.carbon.identity.core</artifactId>
                 <version>${carbon.identity.framework.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.eclipse.equinox</groupId>
+                        <artifactId>javax.servlet</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.wso2.carbon.extension.identity.x509certificate</groupId>
@@ -124,6 +130,12 @@
                 <groupId>org.slf4j</groupId>
                 <artifactId>log4j-over-slf4j</artifactId>
                 <version>${slf4j.api.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>javax.servlet</groupId>
+                <artifactId>javax.servlet-api</artifactId>
+                <version>${javax.servlet-api.version}</version>
+                <scope>test</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -207,8 +219,8 @@
     </build>
 
     <properties>
-        <carbon.identity.framework.version>5.11.148</carbon.identity.framework.version>
-        <carbon.identity.framework.imp.pkg.version.range>[5.0.0, 6.0.0)
+        <carbon.identity.framework.version>6.0.0</carbon.identity.framework.version>
+        <carbon.identity.framework.imp.pkg.version.range>[6.0.0, 7.0.0)
         </carbon.identity.framework.imp.pkg.version.range>
         <carbon.kernel.version>4.6.1</carbon.kernel.version>
         <carbon.p2.plugin.version>1.5.3</carbon.p2.plugin.version>
@@ -237,7 +249,7 @@
         <imp.pkg.version.javax.servlet>2.4.0</imp.pkg.version.javax.servlet>
         <imp.pkg.version.apache.tomcat>[7.0.0, 9.0.0)</imp.pkg.version.apache.tomcat>
         <slf4j.api.version>1.7.21</slf4j.api.version>
-
+        <javax.servlet-api.version>4.0.1</javax.servlet-api.version>
 
     </properties>
 </project>
