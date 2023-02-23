@@ -54,9 +54,9 @@ import org.bouncycastle.cert.ocsp.OCSPReq;
 import org.bouncycastle.cert.ocsp.OCSPReqBuilder;
 import org.bouncycastle.cert.ocsp.OCSPResp;
 import org.bouncycastle.cert.ocsp.SingleResp;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.DigestCalculatorProvider;
 import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
+import org.wso2.carbon.base.ServerConfiguration;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.x509Certificate.validation.cache.CRLCache;
 import org.wso2.carbon.identity.x509Certificate.validation.cache.CRLCacheEntry;
@@ -70,6 +70,7 @@ import org.wso2.carbon.registry.core.Resource;
 import org.wso2.carbon.registry.core.exceptions.RegistryException;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.utils.CarbonUtils;
+import org.wso2.carbon.utils.ServerConstants;
 
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
@@ -94,6 +95,9 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
+import java.security.NoSuchProviderException;
+import java.security.Provider;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -106,8 +110,6 @@ import java.util.Map;
 import static org.wso2.carbon.registry.core.RegistryConstants.PATH_SEPARATOR;
 
 public class CertificateValidationUtil {
-
-    private static final String BC = "BC";
     private static final String CONTENT_TYPE = "text/xml; charset=utf-8";
 
     private static final Log log = LogFactory.getLog(CertificateValidationUtil.class);
@@ -819,13 +821,27 @@ public class CertificateValidationUtil {
     private static OCSPReq generateOCSPRequest(X509Certificate issuerCert, BigInteger serialNumber)
             throws CertificateValidationException {
 
-        // Add provider BC
-        Security.addProvider(new BouncyCastleProvider());
         try {
+            String providerName = getJCEProvider();
+            Provider provider;
 
+            if (providerName.equals(ServerConstants.JCE_PROVIDER_BC)) {
+                provider = (Provider) (Class.forName("org.bouncycastle.jce.provider.BouncyCastleProvider")).
+                        getDeclaredConstructor().newInstance();
+
+            } else if (providerName.equals(ServerConstants.JCE_PROVIDER_BCFIPS)) {
+                provider = (Provider) (Class.forName
+                        ("org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider")).getDeclaredConstructor().
+                        newInstance();
+
+            } else {
+                throw new NoSuchProviderException("Configured JCE provider is not supported.");
+            }
+            Security.addProvider(provider);
             byte[] issuerCertEnc = issuerCert.getEncoded();
             X509CertificateHolder certificateHolder = new X509CertificateHolder(issuerCertEnc);
-            DigestCalculatorProvider digCalcProv = new JcaDigestCalculatorProviderBuilder().setProvider(BC).build();
+            DigestCalculatorProvider digCalcProv = new JcaDigestCalculatorProviderBuilder().
+                    setProvider(getJCEProvider()).build();
 
             // CertID structure is used to uniquely identify certificates that are the subject of
             // an OCSP request or response and has an ASN.1 definition. CertID structure is defined in RFC 2560
@@ -1099,6 +1115,15 @@ public class CertificateValidationUtil {
             throw new CertificateValidationException("Error while get tenant registry.", e);
         }
         return registry;
+    }
+
+    private static String getJCEProvider() {
+
+        String provider = ServerConfiguration.getInstance().getFirstProperty(ServerConstants.JCE_PROVIDER);
+        if (!StringUtils.isBlank(provider)) {
+            return provider;
+        }
+        return ServerConstants.JCE_PROVIDER_BC;
     }
 
 }
