@@ -87,6 +87,8 @@
                         <Import-Package>
                             javax.servlet; version="${imp.pkg.version.javax.servlet}",
                             org.apache.tomcat.*; version="${imp.pkg.version.apache.tomcat}",
+                            org.wso2.carbon.identity.core.util;
+                            version="${carbon.identity.framework.imp.pkg.version.range}",
                             *;resolution:=optional
                         </Import-Package>
                     </instructions>
