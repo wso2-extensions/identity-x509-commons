@@ -599,7 +599,7 @@ public class CertificateValidationUtil {
                     }
                 }
 
-                x509CRL = downloadCRLAndAddToCache(crlUrl, peerCert, retryCount);
+                x509CRL = downloadCRLAndAddToCache(crlUrl, retryCount, peerCert);
                 if (x509CRL != null) {
                     return getRevocationStatusFromCRL(x509CRL, peerCert);
                 }
@@ -673,7 +673,7 @@ public class CertificateValidationUtil {
     }
 
     private static X509CRL downloadCRLAndAddToCache(
-            String crlUrl, X509Certificate peerCert, int retryCount)
+            String crlUrl, int retryCount, X509Certificate peerCert)
             throws CertificateValidationException, IOException {
 
         X509CRL x509CRL;
