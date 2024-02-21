@@ -72,8 +72,6 @@ import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.utils.CarbonUtils;
 import org.wso2.carbon.utils.ServerConstants;
 
-import javax.xml.namespace.QName;
-import javax.xml.stream.XMLStreamException;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -89,14 +87,14 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.NoSuchProviderException;
+import java.security.Provider;
 import java.security.Security;
 import java.security.cert.CRLException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
-import java.security.NoSuchProviderException;
-import java.security.Provider;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -107,8 +105,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import javax.xml.namespace.QName;
+import javax.xml.stream.XMLStreamException;
+
 import static org.wso2.carbon.registry.core.RegistryConstants.PATH_SEPARATOR;
 
+/**
+ * This class holds the X509 Certificate validation utilities.
+ */
 public class CertificateValidationUtil {
     private static final String CONTENT_TYPE = "text/xml; charset=utf-8";
 
@@ -116,7 +120,7 @@ public class CertificateValidationUtil {
 
     /**
      * ********************************************
-     * Util methods for Validator Configurations
+     * Util methods for Validator Configurations.
      * ********************************************
      */
     public static void addDefaultValidationConfigInRegistry(String tenantDomain) {
@@ -164,7 +168,7 @@ public class CertificateValidationUtil {
     }
 
     /**
-     * Load Validator Configurations from Registry and return the enabled validators' configurations
+     * Load Validator Configurations from Registry and return the enabled validators' configurations.
      *
      * @return List of registered validators
      * @throws CertificateValidationException certificateValidationException
@@ -224,7 +228,7 @@ public class CertificateValidationUtil {
 
         List<Validator> defaultValidatorConfig = getDefaultValidatorConfig(validatorsElement);
 
-        // iterate through the validator config list and write to the the registry
+        // iterate through the validator config list and write to the registry
         for (Validator validator : defaultValidatorConfig) {
             String validatorConfRegPath = X509CertificateValidationConstants.VALIDATOR_CONF_REG_PATH +
                     PATH_SEPARATOR + getNormalizedName(validator.getDisplayName());
@@ -267,7 +271,8 @@ public class CertificateValidationUtil {
             String retryCount = validatorProperties.get(X509CertificateValidationConstants.VALIDATOR_CONF_RETRY_COUNT);
 
             Validator validator = new Validator(name, displayName, Boolean.parseBoolean(enable),
-                    Integer.parseInt(priority), Boolean.parseBoolean(fullChainValidation), Integer.parseInt(retryCount));
+                    Integer.parseInt(priority), Boolean.parseBoolean(fullChainValidation),
+                    Integer.parseInt(retryCount));
             defaultValidatorConfig.add(validator);
         }
         return defaultValidatorConfig;
@@ -360,7 +365,7 @@ public class CertificateValidationUtil {
      */
 
     /**
-     * Load CA certificates from registry
+     * Load CA certificates from registry.
      *
      * @param peerCertificate peer certificate
      * @return List of issuer CA certificates
@@ -480,8 +485,8 @@ public class CertificateValidationUtil {
                     if (validator.isEnabled()) {
                         if (X509CertificateValidationConstants.OCSP_VALIDATOR.equals(validator.getDisplayName())) {
                             ocspUrls = getAIALocations(certificate);
-                        }
-                        else if (X509CertificateValidationConstants.CRL_VALIDATOR.equals(validator.getDisplayName())) {
+                        } else if (X509CertificateValidationConstants.CRL_VALIDATOR
+                                .equals(validator.getDisplayName())) {
                             crlUrls = getCRLUrls(certificate);
                         }
                     }
@@ -565,7 +570,7 @@ public class CertificateValidationUtil {
     }
 
     /**
-     * Get revocation status of a certificate using CRL Url
+     * Get revocation status of a certificate using CRL Url.
      *
      * @param peerCert   peer certificate
      * @param retryCount retry count to connect to CRL Url and get the CRL
@@ -696,8 +701,9 @@ public class CertificateValidationUtil {
         } catch (CRLException e) {
             throw new CertificateValidationException("Cannot generate X509CRL from the stream data", e);
         } finally {
-            if (crlStream != null)
+            if (crlStream != null) {
                 crlStream.close();
+            }
         }
         return x509CRL;
     }
@@ -869,7 +875,7 @@ public class CertificateValidationUtil {
     }
 
     /**
-     * Get revocation status of a certificate using OCSP Url
+     * Get revocation status of a certificate using OCSP Url.
      *
      * @param peerCert   peer certificate
      * @param issuerCert issuer certificate of peer
@@ -1019,7 +1025,7 @@ public class CertificateValidationUtil {
      */
 
     /**
-     * Generate thumbprint of certificate
+     * Generate thumbprint of certificate.
      *
      * @param encodedCert Base64 encoded certificate
      * @return Decoded <code>Certificate</code>
@@ -1038,7 +1044,7 @@ public class CertificateValidationUtil {
     }
 
     /**
-     * Encode X509 Certificate
+     * Encode X509 Certificate.
      *
      * @param certificate certificate to get encoded
      * @return encoded certificate
