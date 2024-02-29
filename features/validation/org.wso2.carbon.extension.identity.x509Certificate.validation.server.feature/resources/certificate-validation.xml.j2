@@ -22,8 +22,10 @@
 	</Validator>
 </Validators>
 
-<!-- Trust stores with certificates of CAs and intermediate CAs which are to be considered as trusted CAs for X509 certificate validation with CRL and OCSP --> 
-<!--TrustStores>
-    <TrustStore truststoreFile="<trustStore_file_path>" truststorePass="<trustStore_password>" type="JKS"/>
-</TrustStores-->
+<!-- Trust stores with certificates of CAs and intermediate CAs which are to be considered as trusted CAs for X509 certificate validation with CRL and OCSP -->
+{% if certificate_validation.truststore.file_path is defined %}
+<TrustStores>
+  <TrustStore truststoreFile="{{certificate_validation.truststore.file_path}}" truststorePass="{{certificate_validation.truststore.password}}" type="{{certificate_validation.truststore.type}}"/>
+</TrustStores>
+{% endif %}
 </CertificateValidation>
