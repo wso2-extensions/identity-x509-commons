@@ -115,7 +115,6 @@ import static org.wso2.carbon.registry.core.RegistryConstants.PATH_SEPARATOR;
  */
 public class CertificateValidationUtil {
     private static final String CONTENT_TYPE = "text/xml; charset=utf-8";
-    private static final String CRL_CACHE_SYNC_LOCK_PREFIX = "CRLCacheLock:";
 
     private static final Log log = LogFactory.getLog(CertificateValidationUtil.class);
 
@@ -600,12 +599,16 @@ public class CertificateValidationUtil {
                         if (log.isDebugEnabled()) {
                             log.debug("CRL is too old. Removing from cache.");
                         }
-                        clearCRLCache(crlUrl, peerCert);
+                        CRLCache.getInstance().clearCacheEntry(crlUrl);
                     }
                 }
 
-                x509CRL = downloadCRLAndAddToCache(crlUrl, retryCount, peerCert);
+                x509CRL = downloadCRLFromWeb(crlUrl, retryCount, peerCert);
                 if (x509CRL != null) {
+                    addCRLToCache(crlUrl, x509CRL);
+                    if (log.isDebugEnabled()) {
+                        log.debug("CRL is added into cache.");
+                    }
                     return getRevocationStatusFromCRL(x509CRL, peerCert);
                 }
             } catch (Exception e) {
@@ -665,38 +668,6 @@ public class CertificateValidationUtil {
             }
         }
         return false;
-    }
-
-    private static void clearCRLCache(String crlUrl, X509Certificate peerCert) throws CertificateValidationException {
-
-        synchronized ((CRL_CACHE_SYNC_LOCK_PREFIX + crlUrl).intern()) {
-            X509CRL x509CRL = getCRLFromCache(crlUrl);
-            if (x509CRL != null && !isValidX509Crl(x509CRL, peerCert)) {
-                CRLCache.getInstance().clearCacheEntry(crlUrl);
-            }
-        }
-    }
-
-    private static X509CRL downloadCRLAndAddToCache(
-            String crlUrl, int retryCount, X509Certificate peerCert)
-            throws CertificateValidationException, IOException {
-
-        X509CRL x509CRL;
-        synchronized ((CRL_CACHE_SYNC_LOCK_PREFIX + crlUrl).intern()) {
-            X509CRL x509CRLFromCache = getCRLFromCache(crlUrl);
-            if (x509CRLFromCache == null || !isValidX509Crl(x509CRLFromCache, peerCert)) {
-                x509CRL = downloadCRLFromWeb(crlUrl, retryCount, peerCert);
-                if (x509CRL != null) {
-                    addCRLToCache(crlUrl, x509CRL);
-                    if (log.isDebugEnabled()) {
-                        log.debug("CRL, downloaded from URL: " + crlUrl + ", is added into cache.");
-                    }
-                }
-            } else {
-                x509CRL = x509CRLFromCache;
-            }
-        }
-        return x509CRL;
     }
 
     private static X509CRL downloadCRLFromWeb(String crlURL, int retryCount, X509Certificate peerCert)
