@@ -114,7 +114,7 @@ import static org.wso2.carbon.registry.core.RegistryConstants.PATH_SEPARATOR;
  * This class holds the X509 Certificate validation utilities.
  */
 public class CertificateValidationUtil {
-    private static final String CONTENT_TYPE = "text/xml; charset=utf-8";
+
     private static final String CRL_CACHE_SYNC_LOCK_PREFIX = "CRLCacheLock:";
 
     private static final Log log = LogFactory.getLog(CertificateValidationUtil.class);
@@ -1034,7 +1034,7 @@ public class CertificateValidationUtil {
         httpPost.addHeader(X509CertificateValidationConstants.HTTP_ACCEPT,
                 X509CertificateValidationConstants.HTTP_ACCEPT_OCSP);
 
-        httpPost.setEntity(new ByteArrayEntity(message, ContentType.create(CONTENT_TYPE)));
+        httpPost.setEntity(new ByteArrayEntity(message, ContentType.create("text/xml", "UTF-8")));
     }
 
     private static RevocationStatus getRevocationStatusFromOCSP(SingleResp resp)
