@@ -58,6 +58,7 @@ import org.bouncycastle.operator.DigestCalculatorProvider;
 import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
 import org.wso2.carbon.base.ServerConfiguration;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.x509Certificate.validation.cache.CRLCache;
 import org.wso2.carbon.identity.x509Certificate.validation.cache.CRLCacheEntry;
 import org.wso2.carbon.identity.x509Certificate.validation.internal.CertValidationDataHolder;
@@ -82,6 +83,7 @@ import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -116,6 +118,8 @@ import static org.wso2.carbon.registry.core.RegistryConstants.PATH_SEPARATOR;
 public class CertificateValidationUtil {
 
     private static final String CRL_CACHE_SYNC_LOCK_PREFIX = "CRLCacheLock:";
+    private static final String CRL_DOWNLOAD_TIMEOUT_CONFIG = "X509.CRLDownloadTimeout";
+    private static int CRL_DOWNLOAD_TIMEOUT = 60000;
 
     private static final Log log = LogFactory.getLog(CertificateValidationUtil.class);
 
@@ -164,6 +168,23 @@ public class CertificateValidationUtil {
                 } catch (IOException e) {
                     log.error("Error while closing input stream", e);
                 }
+            }
+        }
+    }
+
+    public static void loadCRLDownloadTimeoutFromConfig() {
+
+        String cRLDownloadTimeoutStr = (String) IdentityConfigParser.getInstance().getConfiguration()
+                .get(CRL_DOWNLOAD_TIMEOUT_CONFIG);
+        if (cRLDownloadTimeoutStr == null) {
+            return;
+        }
+        try {
+            CRL_DOWNLOAD_TIMEOUT = Integer.parseInt(cRLDownloadTimeoutStr);
+        } catch (NumberFormatException e) {
+            if (log.isDebugEnabled()) {
+                log.debug("Error while parsing CRL download timeout from configuration. Hence keeping the default " +
+                        "value of " + CRL_DOWNLOAD_TIMEOUT);
             }
         }
     }
@@ -704,18 +725,24 @@ public class CertificateValidationUtil {
 
         InputStream crlStream = null;
         X509CRL x509CRL = null;
+        HttpURLConnection connection = null;
         try {
             URL url = new URL(crlURL);
-            crlStream = url.openStream();
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setReadTimeout(CRL_DOWNLOAD_TIMEOUT);
+            connection.connect();
+            crlStream = connection.getInputStream();
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
             X509CRL x509CRLDownloaded = (X509CRL) cf.generateCRL(crlStream);
             if (log.isDebugEnabled()) {
                 log.debug("CRL is downloaded from CRL Url: " + crlURL);
             }
 
-            if (isValidX509Crl(x509CRLDownloaded, peerCert)) {
-                x509CRL = x509CRLDownloaded;
+            if (!isValidX509Crl(x509CRLDownloaded, peerCert)) {
+                throw new CertificateValidationException("Downloaded X509 CRL is not valid. Issuer DN is not matched"
+                        + " with the peer certificate or CRL is not updated");
             }
+            x509CRL = x509CRLDownloaded;
         } catch (MalformedURLException e) {
             throw new CertificateValidationException("CRL Url is malformed", e);
         } catch (IOException e) {
@@ -735,6 +762,8 @@ public class CertificateValidationUtil {
             if (crlStream != null) {
                 crlStream.close();
             }
+            if (connection != null)
+                connection.disconnect();
         }
         return x509CRL;
     }
