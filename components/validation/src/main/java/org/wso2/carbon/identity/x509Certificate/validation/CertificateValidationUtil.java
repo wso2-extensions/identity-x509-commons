@@ -172,6 +172,9 @@ public class CertificateValidationUtil {
         }
     }
 
+    /**
+     * Load CRL download timeout from configuration.
+     */
     public static void loadCRLDownloadTimeoutFromConfig() {
 
         String cRLDownloadTimeoutStr = (String) IdentityConfigParser.getInstance().getConfiguration()
