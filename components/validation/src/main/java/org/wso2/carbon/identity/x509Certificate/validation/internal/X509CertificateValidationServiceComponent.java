@@ -50,6 +50,7 @@ public class X509CertificateValidationServiceComponent {
         context.getBundleContext().registerService(RevocationValidationManager.class.getName(),
                 new RevocationValidationManagerImpl(), null);
         CertificateValidationUtil.addDefaultValidationConfigInRegistry(null);
+        CertificateValidationUtil.loadCRLDownloadTimeoutFromConfig();
         context.getBundleContext().registerService(RevocationValidator.class.getName(),
                 new CRLValidator(), null);
         context.getBundleContext().registerService(RevocationValidator.class.getName(),

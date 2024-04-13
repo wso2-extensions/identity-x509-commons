@@ -79,11 +79,10 @@ public class X509ServerConfiguration {
     private void parseX509ServerConfigurations(OMElement x509Elem) {
 
         // Get the configured name of the X509Request header.
-        String requestHeaderName =
-                x509Elem.getFirstChildWithName(getQNameWithIdentityNS(CONFIG_ELEM_X509_REQUEST_HEADER))
-                        .getText().trim();
+        OMElement requestHeaderName =
+                x509Elem.getFirstChildWithName(getQNameWithIdentityNS(CONFIG_ELEM_X509_REQUEST_HEADER));
         if (requestHeaderName != null) {
-            x509requestHeader = requestHeaderName;
+            x509requestHeader = requestHeaderName.getText().trim();
         }
     }
 
