@@ -541,8 +541,8 @@ public class CertificateValidationUtil {
             throw new CertificateValidationException("Error adding default ca certificate with serial num:" +
                     certificate.getSerialNumber() + " in registry.", e);
         } catch (CertificateException e) {
-            throw new CertificateValidationException("Error encoding ca certificate with serial num: " +
-                    certificate.getSerialNumber() + " to add in registry.", e);
+            log.error("Error encoding ca certificate with serial num: " + certificate.getSerialNumber() +
+                    " to add in registry.", e);
         }
     }
 
@@ -578,6 +578,10 @@ public class CertificateValidationUtil {
      */
     public static List<String> getCRLUrls(X509Certificate cert) throws CertificateValidationException {
 
+        // If the certificate is a root CA, it doesn't have CRL distribution points.
+        if (isRootCA(cert)) {
+            return new ArrayList<>();
+        }
         List<String> crlUrls;
         byte[] crlDPExtensionValue = getCRLDPExtensionValue(cert);
         if (crlDPExtensionValue == null) {
@@ -862,6 +866,10 @@ public class CertificateValidationUtil {
      */
     public static List<String> getAIALocations(X509Certificate cert) throws CertificateValidationException {
 
+        // If the certificate is a root CA, it doesn't have an OCSP endpoint.
+        if (isRootCA(cert)) {
+            return new ArrayList<>();
+        }
         List<String> ocspUrlList;
         byte[] aiaExtensionValue = getAiaExtensionValue(cert);
         if (aiaExtensionValue == null) {
@@ -1193,6 +1201,17 @@ public class CertificateValidationUtil {
             return provider;
         }
         return ServerConstants.JCE_PROVIDER_BC;
+    }
+
+    /**
+     * Check whether the certificate is a root CA.
+     *
+     * @param cert certificate
+     * @return true if the certificate is a root CA
+     */
+    private static boolean isRootCA(X509Certificate cert) {
+
+        return cert.getIssuerX500Principal().equals(cert.getSubjectX500Principal());
     }
 
 }
