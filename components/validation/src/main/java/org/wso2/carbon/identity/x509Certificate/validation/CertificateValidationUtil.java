@@ -87,11 +87,15 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.security.InvalidKeyException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.Provider;
+import java.security.PublicKey;
 import java.security.Security;
+import java.security.SignatureException;
 import java.security.cert.CRLException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -506,12 +510,15 @@ public class CertificateValidationUtil {
         try {
             if (!registry.resourceExists(caCertRegPath)) {
                 List<Validator> defaultValidatorConfig = getDefaultValidatorConfig(validatorChildElement);
+                boolean isSelfSignedCert = isSelfSignedCert(certificate);
                 for (Validator validator : defaultValidatorConfig) {
                     if (validator.isEnabled()) {
-                        if (X509CertificateValidationConstants.OCSP_VALIDATOR.equals(validator.getDisplayName())) {
+                        if (X509CertificateValidationConstants.OCSP_VALIDATOR.equals(validator.getDisplayName()) &&
+                                !isSelfSignedCert) {
                             ocspUrls = getAIALocations(certificate);
-                        } else if (X509CertificateValidationConstants.CRL_VALIDATOR
-                                .equals(validator.getDisplayName())) {
+                        }
+                        else if (X509CertificateValidationConstants.CRL_VALIDATOR.equals(validator.getDisplayName()) &&
+                                !isSelfSignedCert) {
                             crlUrls = getCRLUrls(certificate);
                         }
                     }
@@ -538,11 +545,13 @@ public class CertificateValidationUtil {
                 registry.put(caCertRegPath, resource);
             }
         } catch (RegistryException e) {
-            throw new CertificateValidationException("Error adding default ca certificate with serial num:" +
-                    certificate.getSerialNumber() + " in registry.", e);
+            log.error("Error adding default ca certificate with serial num:" + certificate.getSerialNumber() +
+                    " in registry.", e);
         } catch (CertificateException e) {
-            throw new CertificateValidationException("Error encoding ca certificate with serial num: " +
-                    certificate.getSerialNumber() + " to add in registry.", e);
+            log.error("Error encoding ca certificate with serial num: " + certificate.getSerialNumber() +
+                    " to add in registry.", e);
+        } catch (CertificateValidationException e) {
+            log.error("Error while validating certificate with serial num: " + certificate.getSerialNumber(), e);
         }
     }
 
@@ -1193,6 +1202,24 @@ public class CertificateValidationUtil {
             return provider;
         }
         return ServerConstants.JCE_PROVIDER_BC;
+    }
+
+    /**
+     * Checks whether the given certificate is a self-signed certificate.
+     *
+     * @param cert X509Certificate
+     * @return true if the certificate is self-signed, false otherwise
+     */
+    private static boolean isSelfSignedCert(X509Certificate cert) {
+
+        try {
+            PublicKey key = cert.getPublicKey();
+            cert.verify(key);
+            return true;
+        } catch (CertificateException | NoSuchProviderException | SignatureException | NoSuchAlgorithmException |
+                 InvalidKeyException e) {
+            return false;
+        }
     }
 
 }
