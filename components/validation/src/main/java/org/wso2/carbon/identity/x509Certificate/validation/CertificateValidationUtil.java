@@ -502,8 +502,8 @@ public class CertificateValidationUtil {
     }
 
     private static void addDefaultCACertificateInRegistry(Registry registry, String caCertRegPath,
-                                                          X509Certificate certificate, OMElement validatorChildElement)
-            throws CertificateValidationException {
+                                                          X509Certificate certificate,
+                                                          OMElement validatorChildElement) {
 
         List<String> ocspUrls = new ArrayList<>();
         List<String> crlUrls = new ArrayList<>();
