@@ -30,6 +30,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.bouncycastle.asn1.ASN1IA5String;
 import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.DERIA5String;
@@ -1000,7 +1001,7 @@ public class CertificateValidationUtil {
                 if (X509ObjectIdentifiers.ocspAccessMethod.equals(accessDescription.getAccessMethod())) {
                     GeneralName gn = accessDescription.getAccessLocation();
                     if (gn != null && gn.getTagNo() == GeneralName.uniformResourceIdentifier) {
-                        DERIA5String str = DERIA5String.getInstance(gn.getName());
+                        ASN1IA5String str = DERIA5String.getInstance(gn.getName());
                         String accessLocation = str.getString();
                         ocspUrlList.add(accessLocation);
                     }
