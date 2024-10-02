@@ -30,9 +30,9 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.bouncycastle.asn1.ASN1IA5String;
 import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.ASN1Primitive;
-import org.bouncycastle.asn1.DERIA5String;
 import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.ocsp.OCSPObjectIdentifiers;
 import org.bouncycastle.asn1.ocsp.OCSPResponseStatus;
@@ -72,6 +72,7 @@ import org.wso2.carbon.registry.core.exceptions.RegistryException;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.utils.CarbonUtils;
 import org.wso2.carbon.utils.ServerConstants;
+import org.wso2.carbon.utils.security.KeystoreUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -827,9 +828,9 @@ public class CertificateValidationUtil {
                 // Look for a URI
                 for (GeneralName genName : genNames) {
                     if (genName.getTagNo() == GeneralName.uniformResourceIdentifier) {
-                        //DERIA5String contains an ascii string.
-                        //A IA5String is a restricted character string type in the ASN.1 notation
-                        String url = DERIA5String.getInstance(genName.getName()).getString().trim();
+                        // ASN1IA5String contains an ascii string.
+                        // A IA5String is a restricted character string type in the ASN.1 notation
+                        String url = ASN1IA5String.getInstance(genName.getName()).getString().trim();
                         crlUrls.add(url);
                     }
                 }
@@ -1000,7 +1001,7 @@ public class CertificateValidationUtil {
                 if (X509ObjectIdentifiers.ocspAccessMethod.equals(accessDescription.getAccessMethod())) {
                     GeneralName gn = accessDescription.getAccessLocation();
                     if (gn != null && gn.getTagNo() == GeneralName.uniformResourceIdentifier) {
-                        DERIA5String str = DERIA5String.getInstance(gn.getName());
+                        ASN1IA5String str = ASN1IA5String.getInstance(gn.getName());
                         String accessLocation = str.getString();
                         ocspUrlList.add(accessLocation);
                     }
@@ -1142,7 +1143,7 @@ public class CertificateValidationUtil {
         String absolutePath = new File(keyStorePath).getAbsolutePath();
         FileInputStream inputStream = null;
         try {
-            KeyStore store = KeyStore.getInstance(type);
+            KeyStore store = KeystoreUtils.getKeystoreInstance(type);
             inputStream = new FileInputStream(absolutePath);
             store.load(inputStream, password.toCharArray());
             return store;

@@ -51,8 +51,8 @@
         <dependencies>
             <dependency>
                 <groupId>org.wso2.orbit.org.bouncycastle</groupId>
-                <artifactId>bcpkix-jdk15on</artifactId>
-                <version>${bcpkix-jdk15.version}</version>
+                <artifactId>bcpkix-jdk18on</artifactId>
+                <version>${bcpkix-jdk18.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.wso2.carbon</groupId>
@@ -215,7 +215,7 @@
         <carbon.identity.framework.version>5.11.148</carbon.identity.framework.version>
         <carbon.identity.framework.imp.pkg.version.range>[5.0.0, 8.0.0)
         </carbon.identity.framework.imp.pkg.version.range>
-        <carbon.kernel.version>4.9.2</carbon.kernel.version>
+        <carbon.kernel.version>4.10.22</carbon.kernel.version>
         <carbon.p2.plugin.version>1.5.3</carbon.p2.plugin.version>
 
         <maven.buildnumber.plugin.version>1.4</maven.buildnumber.plugin.version>
@@ -224,7 +224,7 @@
 
         <apache.felix.scr.ds.annotations.version>1.2.8</apache.felix.scr.ds.annotations.version>
         <equinox.osgi.services.version>3.5.100.v20160504-1419</equinox.osgi.services.version>
-        <bcpkix-jdk15.version>1.70.0.wso2v1</bcpkix-jdk15.version>
+        <bcpkix-jdk18.version>1.74.0.wso2v1</bcpkix-jdk18.version>
         <org.bouncycastle.imp.pkg.version.range>[1.0.0,2.0.0)</org.bouncycastle.imp.pkg.version.range>
 
         <osgi.service.component.imp.pkg.version.range>[1.2.0, 2.0.0)</osgi.service.component.imp.pkg.version.range>
