@@ -224,7 +224,7 @@
 
         <apache.felix.scr.ds.annotations.version>1.2.8</apache.felix.scr.ds.annotations.version>
         <equinox.osgi.services.version>3.5.100.v20160504-1419</equinox.osgi.services.version>
-        <bcpkix-jdk18.version>1.74.0.wso2v1</bcpkix-jdk18.version>
+        <bcpkix-jdk18.version>1.78.1.wso2v1</bcpkix-jdk18.version>
         <org.bouncycastle.imp.pkg.version.range>[1.0.0,2.0.0)</org.bouncycastle.imp.pkg.version.range>
 
         <osgi.service.component.imp.pkg.version.range>[1.2.0, 2.0.0)</osgi.service.component.imp.pkg.version.range>
