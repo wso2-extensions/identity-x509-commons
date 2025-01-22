@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2018, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2018-2025, WSO2 LLC. (http://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
+ * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
@@ -18,7 +18,8 @@
 
 package org.wso2.carbon.identity.x509Certificate.validation.internal;
 
-import org.wso2.carbon.registry.core.service.RegistryService;
+import org.wso2.carbon.identity.certificate.management.service.CertificateManagementService;
+import org.wso2.carbon.identity.configuration.mgt.core.ConfigurationManager;
 import org.wso2.carbon.user.core.service.RealmService;
 
 /**
@@ -26,9 +27,10 @@ import org.wso2.carbon.user.core.service.RealmService;
  */
 public class CertValidationDataHolder {
 
-    private static RegistryService registryService;
     private static RealmService realmService;
     private static CertValidationDataHolder instance = new CertValidationDataHolder();
+    private ConfigurationManager configurationManager;
+    private CertificateManagementService certificateManagementService;
 
     private CertValidationDataHolder() {
     }
@@ -44,23 +46,43 @@ public class CertValidationDataHolder {
     }
 
     /**
-     * Get registry service.
+     * Set Configuration Manager.
      *
-     * @return registry service
+     * @param configurationManager configuration manager
      */
-    public RegistryService getRegistryService() {
+    public void setConfigurationManager(ConfigurationManager configurationManager) {
 
-        return registryService;
+        this.configurationManager = configurationManager;
     }
 
     /**
-     * Set registry service.
+     * Get Configuration Manager.
      *
-     * @param service registry service
+     * @return configuration manager
      */
-    public void setRegistryService(RegistryService service) {
+    public ConfigurationManager getConfigurationManager() {
 
-        this.registryService = service;
+        return configurationManager;
+    }
+
+    /**
+     * Set Certificate Management Service.
+     *
+     * @param service certificate management service
+     */
+    public void setCertificateManagementService(CertificateManagementService service) {
+
+        this.certificateManagementService = service;
+    }
+
+    /**
+     * Get Certificate Management Service.
+     *
+     * @return certificate management service
+     */
+    public CertificateManagementService getCertificateManagementService() {
+
+        return certificateManagementService;
     }
 
     /**
