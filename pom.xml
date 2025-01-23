@@ -101,18 +101,6 @@
                 <artifactId>org.wso2.carbon.extension.identity.x509Certificate.validation</artifactId>
                 <version>${project.version}</version>
             </dependency>
-
-            <dependency>
-                <groupId>org.powermock</groupId>
-                <artifactId>powermock-module-testng</artifactId>
-                <version>${powermock.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.powermock</groupId>
-                <artifactId>powermock-api-mockito</artifactId>
-                <version>${powermock.version}</version>
-                <scope>test</scope>
-            </dependency>
             <dependency>
                 <groupId>org.apache.tomcat</groupId>
                 <artifactId>tomcat-coyote</artifactId>
@@ -129,6 +117,30 @@
                 <groupId>org.slf4j</groupId>
                 <artifactId>log4j-over-slf4j</artifactId>
                 <version>${slf4j.api.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>${mockito.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-testng</artifactId>
+                <version>${mockito-testng.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testng</groupId>
+                <artifactId>testng</artifactId>
+                <version>${testng.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>javax.servlet</groupId>
+                <artifactId>javax.servlet-api</artifactId>
+                <version>${javax.servlet-api.version}</version>
+                <scope>test</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -212,7 +224,7 @@
     </build>
 
     <properties>
-        <carbon.identity.framework.version>5.11.148</carbon.identity.framework.version>
+        <carbon.identity.framework.version>7.7.106</carbon.identity.framework.version>
         <carbon.identity.framework.imp.pkg.version.range>[5.0.0, 8.0.0)
         </carbon.identity.framework.imp.pkg.version.range>
         <carbon.kernel.version>4.10.22</carbon.kernel.version>
@@ -236,13 +248,16 @@
         <commons-httpclient.wso2.osgi.version>[3.1.0,4.0.0)</commons-httpclient.wso2.osgi.version>
         <httpcomponents-httpclient.wso2.version>4.3.6.wso2v2</httpcomponents-httpclient.wso2.version>
 
-        <powermock.version>1.7.3</powermock.version>
         <tomcat-coyote.version>7.0.81</tomcat-coyote.version>
 
         <imp.pkg.version.javax.servlet>2.4.0</imp.pkg.version.javax.servlet>
         <imp.pkg.version.apache.tomcat>[7.0.0, 9.0.0)</imp.pkg.version.apache.tomcat>
         <slf4j.api.version>1.7.21</slf4j.api.version>
 
-
+        <mockito.version>5.3.1</mockito.version>
+        <mockito-testng.version>0.5.2</mockito-testng.version>
+        <testng.version>7.10.1</testng.version>
+        <maven.surefire.plugin.version>3.2.5</maven.surefire.plugin.version>
+        <javax.servlet-api.version>4.0.0</javax.servlet-api.version>
     </properties>
 </project>

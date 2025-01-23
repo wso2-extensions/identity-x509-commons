@@ -20,7 +20,6 @@
 <suite name="X509CertValve-Test-Suite">
 
     <test name="Util-Tests" preserve-order="true" parallel="false">
-        <parameter name="log-level" value="info"/>
         <classes>
             <class name="org.wso2.carbon.extension.identity.x509Certificate.valve.X509CertificateAuthenticationValveTest"/>
             <class name="org.wso2.carbon.extension.identity.x509Certificate.valve.config.X509ServerConfigurationTest"/>

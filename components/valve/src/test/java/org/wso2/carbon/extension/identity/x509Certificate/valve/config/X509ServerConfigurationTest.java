@@ -20,19 +20,19 @@ package org.wso2.carbon.extension.identity.x509Certificate.valve.config;
 
 import org.apache.axiom.om.OMElement;
 import org.mockito.Mock;
-import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.mockito.MockedStatic;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
-import org.wso2.carbon.identity.testutil.powermock.PowerMockIdentityBaseTest;
 
-import static org.mockito.Matchers.eq;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
-import static org.powermock.api.mockito.PowerMockito.when;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertNotNull;
 
-@PrepareForTest({IdentityConfigParser.class})
-public class X509ServerConfigurationTest extends PowerMockIdentityBaseTest {
+public class X509ServerConfigurationTest {
 
     @Mock
     IdentityConfigParser configParser;
@@ -48,12 +48,20 @@ public class X509ServerConfigurationTest extends PowerMockIdentityBaseTest {
         };
     }
 
+    @BeforeClass
+    public void setUp() {
+
+        configParser = mock(IdentityConfigParser.class);
+        x509ConfigElement = mock(OMElement.class);
+    }
+
     @Test(dataProvider = "provideDataForTestGetInstance")
     public void testGetInstance(Object x509ConfigElement) {
 
-        mockStatic(IdentityConfigParser.class);
-        when(IdentityConfigParser.getInstance()).thenReturn(configParser);
-        when(configParser.getConfigElement(eq("X509"))).thenReturn((OMElement) x509ConfigElement);
-        assertNotNull(X509ServerConfiguration.getInstance());
+        try (MockedStatic<IdentityConfigParser> identityConfigParser = mockStatic(IdentityConfigParser.class)) {
+            when(IdentityConfigParser.getInstance()).thenReturn(configParser);
+            when(configParser.getConfigElement(eq("X509"))).thenReturn((OMElement) x509ConfigElement);
+            assertNotNull(X509ServerConfiguration.getInstance());
+        }
     }
 }
