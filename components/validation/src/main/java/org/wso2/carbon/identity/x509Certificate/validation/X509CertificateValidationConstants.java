@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2018, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2018-2025, WSO2 LLC. (http://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
+ * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
@@ -23,6 +23,7 @@ package org.wso2.carbon.identity.x509Certificate.validation;
  */
 public class X509CertificateValidationConstants {
 
+    public static final String VALIDATOR_RESOURCE_TYPE = "Validator";
     public static final String CERT_VALIDATION_CONF_DIRECTORY = "security";
     public static final String CERT_VALIDATION_CONF_FILE = "certificate-validation.xml";
     public static final String VALIDATOR_CONF = "Validators";
@@ -51,6 +52,6 @@ public class X509CertificateValidationConstants {
     public static final String HTTP_ACCEPT_OCSP = "application/ocsp-response";
 
     private X509CertificateValidationConstants() {
-    }
 
+    }
 }

@@ -58,6 +58,10 @@ import org.bouncycastle.operator.DigestCalculatorProvider;
 import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
 import org.wso2.carbon.base.ServerConfiguration;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.identity.configuration.mgt.core.exception.ConfigurationManagementException;
+import org.wso2.carbon.identity.configuration.mgt.core.model.Attribute;
+import org.wso2.carbon.identity.configuration.mgt.core.model.Resources;
+import org.wso2.carbon.identity.configuration.mgt.core.model.ResourceTypeAdd;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.x509Certificate.validation.cache.CRLCache;
 import org.wso2.carbon.identity.x509Certificate.validation.cache.CRLCacheEntry;
@@ -115,6 +119,8 @@ import java.util.Map;
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
 
+import static org.wso2.carbon.identity.configuration.mgt.core.constant.ConfigurationConstants.ErrorMessages.ERROR_CODE_RESOURCE_DOES_NOT_EXISTS;
+import static org.wso2.carbon.identity.configuration.mgt.core.constant.ConfigurationConstants.ErrorMessages.ERROR_CODE_RESOURCE_TYPE_DOES_NOT_EXISTS;
 import static org.wso2.carbon.registry.core.RegistryConstants.PATH_SEPARATOR;
 
 /**
@@ -154,7 +160,7 @@ public class CertificateValidationUtil {
                     OMElement childElement = (OMElement) iterator.next();
                     if (isValidatorConfigProperty(childElement)) {
                         validatorChildElement = childElement;
-                        addDefaultValidatorConfig(childElement, tenantDomain);
+                        addDefaultValidatorConfigToConfigStore(childElement, tenantDomain);
                     } else if (isTrustStoreConfigProperty(childElement)) {
                         trustStoresElement = childElement;
                     }
@@ -163,7 +169,7 @@ public class CertificateValidationUtil {
                     addDefaultCACertificates(trustStoresElement, validatorChildElement, tenantDomain);
                 }
 
-            } catch (XMLStreamException | FileNotFoundException e) {
+            } catch (XMLStreamException | FileNotFoundException | CertificateValidationException e) {
                 log.warn("Error while loading default validator configurations to the registry.", e);
             } finally {
                 try {
@@ -204,6 +210,12 @@ public class CertificateValidationUtil {
      * @throws CertificateValidationException certificateValidationException
      */
     public static List<RevocationValidator> loadEnabledValidatorConfigFromRegistry()
+            throws CertificateValidationException {
+
+        return getRevocationValidatorsFromConfigStore();
+    }
+
+    private static List<RevocationValidator> getRevocationValidatorsFromRegistry()
             throws CertificateValidationException {
 
         String validatorConfRegPath = X509CertificateValidationConstants.VALIDATOR_CONF_REG_PATH;
@@ -1223,4 +1235,200 @@ public class CertificateValidationUtil {
         }
     }
 
+    private static void addDefaultValidatorConfigToConfigStore(OMElement validatorsElement, String tenantDomain)
+            throws CertificateValidationException {
+        List<Validator> defaultValidatorConfig = getDefaultValidatorConfig(validatorsElement);
+
+        for (Validator validator : defaultValidatorConfig) {
+            String validatorResourceType = X509CertificateValidationConstants.VALIDATOR_RESOURCE_TYPE;
+            if (log.isDebugEnabled()) {
+                log.debug("Adding default validator configurations to config store in: " + validatorResourceType);
+            }
+            try {
+                CertValidationDataHolder.getInstance().getConfigurationManager()
+                        .getResourcesByType(validatorResourceType);
+            } catch (ConfigurationManagementException e) {
+                addResourceTypeIfNotExists(e, validatorResourceType, validator.getDisplayName(), tenantDomain);
+            }
+            addValidatorConfigInRegistry(validatorResourceType, validator);
+        }
+    }
+
+    private static void addResourceTypeIfNotExists(ConfigurationManagementException e, String regPath,
+                                                   String displayName, String tenantDomain) throws CertificateValidationException {
+        if (ERROR_CODE_RESOURCE_TYPE_DOES_NOT_EXISTS.getCode().equals(e.getErrorCode())) {
+            ResourceTypeAdd resourceTypeAdd = new ResourceTypeAdd();
+            resourceTypeAdd.setName(regPath);
+            try {
+                CertValidationDataHolder.getInstance().getConfigurationManager().addResourceType(resourceTypeAdd);
+            } catch (ConfigurationManagementException ex) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Error while adding resource type: " + regPath, ex);
+                }
+            }
+            if (log.isDebugEnabled()) {
+                log.debug(String.format("Configuration for %s is added to %s tenant config store.",
+                        displayName, tenantDomain));
+            }
+        } else if (!ERROR_CODE_RESOURCE_DOES_NOT_EXISTS.getCode().equals(e.getErrorCode())) {
+            throw new CertificateValidationException("Error while fetching validator configurations.", e);
+        }
+    }
+
+    private static void addValidatorConfigInRegistry(String validatorConfRegPath,
+                                                     Validator validator) throws CertificateValidationException {
+
+        // Build a new resource from the validator configuration.
+        org.wso2.carbon.identity.configuration.mgt.core.model.Resource newResource =
+                buildResourceFromValidator(validator, getNormalizedName(validator.getDisplayName()),
+                        validatorConfRegPath);
+        addResource(newResource);
+    }
+
+    /**
+     * Method to add a resource.
+     *
+     * @param newResource   New resource to be added.
+     * @return  Added resource.
+     * @throws CertificateValidationException If an error occurred when adding a new resource.
+     */
+    private static org.wso2.carbon.identity.configuration.mgt.core.model.Resource addResource(
+            org.wso2.carbon.identity.configuration.mgt.core.model.Resource newResource)
+            throws CertificateValidationException {
+
+        try {
+            return CertValidationDataHolder.getInstance().getConfigurationManager()
+                    .addResource(newResource.getResourceType(),
+                            newResource);
+        } catch (ConfigurationManagementException e) {
+            throw new CertificateValidationException("Error while adding a new resource.", e);
+        }
+    }
+
+    /**
+     * Builds a Resource object from the Validator configuration.
+     *
+     * @param validator     Validator configuration object.
+     * @param resourceName  Resource name.
+     * @param resourceType  Resource type.
+     * @return A new Resource object with the validator's properties.
+     */
+    private static org.wso2.carbon.identity.configuration.mgt.core.model.Resource buildResourceFromValidator(
+            Validator validator, String resourceName, String resourceType) {
+
+        org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource =
+                new org.wso2.carbon.identity.configuration.mgt.core.model.Resource(resourceName, resourceType);
+        resource.setHasAttribute(true);
+        List<Attribute> attributes = new ArrayList<>();
+        attributes.add(new Attribute(X509CertificateValidationConstants.VALIDATOR_CONF_NAME, validator.getName()));
+        attributes.add(new Attribute(X509CertificateValidationConstants.VALIDATOR_CONF_ENABLE,
+                Boolean.toString(validator.isEnabled())));
+        attributes.add(new Attribute(X509CertificateValidationConstants.VALIDATOR_CONF_PRIORITY,
+                Integer.toString(validator.getPriority())));
+        attributes.add(new Attribute(X509CertificateValidationConstants.VALIDATOR_CONF_FULL_CHAIN_VALIDATION,
+                Boolean.toString(validator.isFullChainValidationEnabled())));
+        attributes.add(new Attribute(X509CertificateValidationConstants.VALIDATOR_CONF_RETRY_COUNT,
+                Integer.toString(validator.getRetryCount())));
+        resource.setAttributes(attributes);
+
+        return resource;
+    }
+
+    private static List<RevocationValidator> getRevocationValidatorsFromConfigStore()
+            throws CertificateValidationException {
+
+        String validatorResourceType = X509CertificateValidationConstants.VALIDATOR_RESOURCE_TYPE;
+
+        if (log.isDebugEnabled()) {
+            log.debug("Loading X509 certificate validator configurations from config store in: " +
+                    validatorResourceType);
+        }
+        if (log.isDebugEnabled()) {
+            log.debug("Validator configurations are available in config store resource type: " +
+                    validatorResourceType);
+        }
+        return getEnabledValidatorsFromConfiguration(validatorResourceType);
+    }
+
+    private static List<RevocationValidator> getEnabledValidatorsFromConfiguration(String validatorConfRegPath)
+            throws CertificateValidationException {
+
+        List<RevocationValidator> validators = new ArrayList<>();
+
+        try {
+            // Fetch all resources of the validator type from the configuration management system.
+            Resources resources = CertValidationDataHolder.getInstance()
+                    .getConfigurationManager()
+                    .getResourcesByType(validatorConfRegPath);
+
+            for (org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource : resources.getResources()) {
+                Validator validator = resourceToValidatorObject(resource);
+
+                if (validator.isEnabled()) {
+                    RevocationValidator revocationValidator;
+                    try {
+                        Class<?> clazz = Class.forName(validator.getName());
+                        Constructor<?> constructor = clazz.getConstructor();
+                        revocationValidator = (RevocationValidator) constructor.newInstance();
+                    } catch (ClassNotFoundException | InvocationTargetException | NoSuchMethodException |
+                             InstantiationException | IllegalAccessException e) {
+                        // Log the exception and skip this validator.
+                        continue;
+                    }
+                    revocationValidator.setEnable(validator.isEnabled());
+                    revocationValidator.setPriority(validator.getPriority());
+                    revocationValidator.setFullChainValidation(validator.isFullChainValidationEnabled());
+                    revocationValidator.setRetryCount(validator.getRetryCount());
+                    validators.add(revocationValidator);
+                }
+            }
+        } catch (ConfigurationManagementException e) {
+            throw new CertificateValidationException("Error while fetching validator configurations.", e);
+        }
+
+        return validators;
+    }
+
+    /**
+     * Converts a Resource object into a Validator object.
+     *
+     * @param resource The resource object to convert.
+     * @return A Validator object populated with resource attributes.
+     */
+    private static Validator resourceToValidatorObject(
+            org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource) {
+
+        Validator validator = new Validator();
+
+        // Extract attributes from the resource.
+        List<Attribute> attributes = resource.getAttributes();
+        if (attributes != null) {
+            for (Attribute attribute : attributes) {
+                String key = attribute.getKey();
+                String value = attribute.getValue();
+
+                switch (key) {
+                    case X509CertificateValidationConstants.VALIDATOR_CONF_NAME:
+                        validator.setName(value);
+                        break;
+                    case X509CertificateValidationConstants.VALIDATOR_CONF_ENABLE:
+                        validator.setEnabled(Boolean.parseBoolean(value));
+                        break;
+                    case X509CertificateValidationConstants.VALIDATOR_CONF_PRIORITY:
+                        validator.setPriority(Integer.parseInt(value));
+                        break;
+                    case X509CertificateValidationConstants.VALIDATOR_CONF_FULL_CHAIN_VALIDATION:
+                        validator.setFullChainValidationEnabled(Boolean.parseBoolean(value));
+                        break;
+                    case X509CertificateValidationConstants.VALIDATOR_CONF_RETRY_COUNT:
+                        validator.setRetryCount(Integer.parseInt(value));
+                        break;
+                    default:
+                        // Ignore unknown attributes.
+                        break;
+                }
+            }
+        }
+        return validator;
+    }
 }

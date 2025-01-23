@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2018, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2018-2025, WSO2 LLC. (http://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
+ * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
@@ -27,6 +27,7 @@ import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
+import org.wso2.carbon.identity.configuration.mgt.core.ConfigurationManager;
 import org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil;
 import org.wso2.carbon.identity.x509Certificate.validation.service.RevocationValidationManager;
 import org.wso2.carbon.identity.x509Certificate.validation.service.RevocationValidationManagerImpl;
@@ -108,4 +109,32 @@ public class X509CertificateValidationServiceComponent {
         CertValidationDataHolder.getInstance().setRealmService(null);
     }
 
+    /**
+     * Set the ConfigurationManager.
+     *
+     * @param configurationManager The {@code ConfigurationManager} instance.
+     */
+    @Reference(
+            name = "resource.configuration.manager",
+            service = ConfigurationManager.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unregisterConfigurationManager"
+    )
+    protected void registerConfigurationManager(ConfigurationManager configurationManager) {
+
+        log.debug("Registering the ConfigurationManager in Certificate Validation Service Component.");
+        CertValidationDataHolder.getInstance().setConfigurationManager(configurationManager);
+    }
+
+    /**
+     * Unset the ConfigurationManager.
+     *
+     * @param configurationManager The {@code ConfigurationManager} instance.
+     */
+    protected void unregisterConfigurationManager(ConfigurationManager configurationManager) {
+
+        log.debug("Unregistering the ConfigurationManager in Certificate Validation Service Component.");
+        CertValidationDataHolder.getInstance().setConfigurationManager(null);
+    }
 }
