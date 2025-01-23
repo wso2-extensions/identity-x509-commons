@@ -22,14 +22,12 @@ import org.apache.axiom.om.util.Base64;
 import org.apache.catalina.Valve;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.mockito.MockedStatic;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import org.wso2.carbon.extension.identity.x509Certificate.valve.config.X509ServerConfiguration;
 import org.wso2.carbon.identity.common.testng.WithCarbonHome;
-import org.wso2.carbon.identity.testutil.powermock.PowerMockIdentityBaseTest;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -41,15 +39,15 @@ import java.util.regex.Pattern;
 
 import javax.servlet.ServletException;
 
-import static org.powermock.api.mockito.PowerMockito.doNothing;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
-import static org.powermock.api.mockito.PowerMockito.when;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
 
 @WithCarbonHome
-@PrepareForTest({X509ServerConfiguration.class})
-public class X509CertificateAuthenticationValveTest extends PowerMockIdentityBaseTest {
+public class X509CertificateAuthenticationValveTest {
 
     private static final String X509_REQUEST_HEADER = "X-SSL-CERT";
     private static final String DUMMY_CERTIFICATE = "-----BEGIN CERTIFICATE-----\tMIIDiDCCAnACCQDMyyUcmVh40DANBgkqhki" +
@@ -73,29 +71,31 @@ public class X509CertificateAuthenticationValveTest extends PowerMockIdentityBas
     private static final String FAULTY_CERTIFICATE = "-----BEGIN CERTIFICATE-----\tbbbhityukAssu==-----END CERTIFICAT" +
             "E-----";
 
-    @Mock
     Request request;
-
-    @Mock
     Response response;
-
-    @Mock
     private Valve valve;
 
-    @Mock
-    private X509ServerConfiguration x509ServerConfiguration;
-
     private X509CertificateAuthenticationValve x509CertificateAuthenticationValve;
+    MockedStatic<X509ServerConfiguration> x509ServerConfigurationMockedStatic;
 
     @BeforeMethod
     public void setUp() throws Exception {
 
         x509CertificateAuthenticationValve = new X509CertificateAuthenticationValve();
-        MockitoAnnotations.initMocks(this);
-        mockStatic(X509ServerConfiguration.class);
+        request = mock(Request.class);
+        response = mock(Response.class);
+        valve = mock(Valve.class);
+        X509ServerConfiguration x509ServerConfiguration = mock(X509ServerConfiguration.class);
+        x509ServerConfigurationMockedStatic = mockStatic(X509ServerConfiguration.class);
 
         when(X509ServerConfiguration.getInstance()).thenReturn(x509ServerConfiguration);
         when(x509ServerConfiguration.getX509requestHeader()).thenReturn(X509_REQUEST_HEADER);
+    }
+
+    @AfterMethod
+    public void tearDown() {
+
+        x509ServerConfigurationMockedStatic.close();
     }
 
     @Test
