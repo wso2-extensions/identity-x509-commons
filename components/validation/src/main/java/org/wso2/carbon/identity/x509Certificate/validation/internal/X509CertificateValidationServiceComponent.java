@@ -28,6 +28,7 @@ import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
 import org.wso2.carbon.identity.configuration.mgt.core.ConfigurationManager;
+import org.wso2.carbon.identity.core.util.IdentityCoreInitializedEvent;
 import org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil;
 import org.wso2.carbon.identity.x509Certificate.validation.service.RevocationValidationManager;
 import org.wso2.carbon.identity.x509Certificate.validation.service.RevocationValidationManagerImpl;
@@ -136,5 +137,22 @@ public class X509CertificateValidationServiceComponent {
 
         log.debug("Unregistering the ConfigurationManager in Certificate Validation Service Component.");
         CertValidationDataHolder.getInstance().setConfigurationManager(null);
+    }
+
+    @Reference(
+            name = "identityCoreInitializedEventService",
+            service = IdentityCoreInitializedEvent.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unsetIdentityCoreInitializedEventService"
+    )
+    protected void setIdentityCoreInitializedEventService(IdentityCoreInitializedEvent identityCoreInitializedEvent) {
+        /* reference IdentityCoreInitializedEvent service to guarantee that this component will wait until identity core
+         is started */
+    }
+
+    protected void unsetIdentityCoreInitializedEventService(IdentityCoreInitializedEvent identityCoreInitializedEvent) {
+        /* reference IdentityCoreInitializedEvent service to guarantee that this component will wait until identity core
+         is started */
     }
 }
