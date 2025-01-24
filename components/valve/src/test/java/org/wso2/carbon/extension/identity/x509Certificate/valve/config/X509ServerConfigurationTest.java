@@ -59,7 +59,7 @@ public class X509ServerConfigurationTest {
     public void testGetInstance(Object x509ConfigElement) {
 
         try (MockedStatic<IdentityConfigParser> identityConfigParser = mockStatic(IdentityConfigParser.class)) {
-            when(IdentityConfigParser.getInstance()).thenReturn(configParser);
+            identityConfigParser.when(IdentityConfigParser::getInstance).thenReturn(configParser);
             when(configParser.getConfigElement(eq("X509"))).thenReturn((OMElement) x509ConfigElement);
             assertNotNull(X509ServerConfiguration.getInstance());
         }

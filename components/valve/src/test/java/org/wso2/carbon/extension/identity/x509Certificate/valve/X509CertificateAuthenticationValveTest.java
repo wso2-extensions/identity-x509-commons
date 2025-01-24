@@ -88,7 +88,8 @@ public class X509CertificateAuthenticationValveTest {
         X509ServerConfiguration x509ServerConfiguration = mock(X509ServerConfiguration.class);
         x509ServerConfigurationMockedStatic = mockStatic(X509ServerConfiguration.class);
 
-        when(X509ServerConfiguration.getInstance()).thenReturn(x509ServerConfiguration);
+        x509ServerConfigurationMockedStatic.when(X509ServerConfiguration::getInstance)
+                .thenReturn(x509ServerConfiguration);
         when(x509ServerConfiguration.getX509requestHeader()).thenReturn(X509_REQUEST_HEADER);
     }
 
