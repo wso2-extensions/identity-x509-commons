@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <CertificateValidation xmlns="http://wso2.org/projects/carbon/certificate-validation.xml">
+{% if authentication.authenticator.x509_certificate.parameters.enable %}
 <Validators>
 	<!-- Validator for validating revocation status of X509 cerificate with CRL -->
 	<Validator name="org.wso2.carbon.identity.x509Certificate.validation.validator.OCSPValidator"
@@ -27,5 +28,6 @@
 <TrustStores>
   <TrustStore truststoreFile="{{certificate_validation.truststore.file_path}}" truststorePass="{{certificate_validation.truststore.password}}" type="{{certificate_validation.truststore.type}}"/>
 </TrustStores>
+{% endif %}
 {% endif %}
 </CertificateValidation>
