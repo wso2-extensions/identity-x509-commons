@@ -27,6 +27,7 @@ import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
+import org.wso2.carbon.identity.certificate.management.service.CertificateManagementService;
 import org.wso2.carbon.identity.configuration.mgt.core.ConfigurationManager;
 import org.wso2.carbon.identity.core.util.IdentityCoreInitializedEvent;
 import org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil;
@@ -137,6 +138,34 @@ public class X509CertificateValidationServiceComponent {
 
         log.debug("Unregistering the ConfigurationManager in Certificate Validation Service Component.");
         CertValidationDataHolder.getInstance().setConfigurationManager(null);
+    }
+
+    /**
+     * Set the CertificateManagementService.
+     *
+     * @param certificateManagementService The {@code CertificateManagementService} instance.
+     */
+    @Reference(
+            name = "certificate.mgt.service.component",
+            service = CertificateManagementService.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unsetCertificateManagementService")
+    protected void setCertificateManagementService(CertificateManagementService certificateManagementService) {
+
+        log.debug("Setting the Certificate Management Service.");
+        CertValidationDataHolder.getInstance().setCertificateManagementService(certificateManagementService);
+    }
+
+    /**
+     * Unset the CertificateManagementService.
+     *
+     * @param certificateManagementService The {@code CertificateManagementService} instance.
+     */
+    protected void unsetCertificateManagementService(CertificateManagementService certificateManagementService) {
+
+        log.debug("Unset certificate Management Service.");
+        CertValidationDataHolder.getInstance().setCertificateManagementService(null);
     }
 
     @Reference(

@@ -18,10 +18,10 @@
 
 package org.wso2.carbon.identity.x509Certificate.validation;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.axiom.om.OMElement;
 import org.apache.axiom.om.impl.builder.StAXOMBuilder;
 import org.apache.axiom.om.util.Base64;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -58,14 +58,19 @@ import org.bouncycastle.operator.DigestCalculatorProvider;
 import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
 import org.wso2.carbon.base.ServerConfiguration;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.identity.certificate.management.exception.CertificateMgtException;
+import org.wso2.carbon.identity.certificate.management.model.Certificate;
 import org.wso2.carbon.identity.configuration.mgt.core.exception.ConfigurationManagementException;
 import org.wso2.carbon.identity.configuration.mgt.core.model.Attribute;
+import org.wso2.carbon.identity.configuration.mgt.core.model.ResourceFile;
 import org.wso2.carbon.identity.configuration.mgt.core.model.Resources;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.x509Certificate.validation.cache.CRLCache;
 import org.wso2.carbon.identity.x509Certificate.validation.cache.CRLCacheEntry;
 import org.wso2.carbon.identity.x509Certificate.validation.internal.CertValidationDataHolder;
 import org.wso2.carbon.identity.x509Certificate.validation.model.CACertificate;
+import org.wso2.carbon.identity.x509Certificate.validation.model.CertObject;
+import org.wso2.carbon.identity.x509Certificate.validation.model.IssuerDNMap;
 import org.wso2.carbon.identity.x509Certificate.validation.model.Validator;
 import org.wso2.carbon.identity.x509Certificate.validation.validator.RevocationValidator;
 import org.wso2.carbon.registry.core.Collection;
@@ -77,12 +82,14 @@ import org.wso2.carbon.utils.CarbonUtils;
 import org.wso2.carbon.utils.ServerConstants;
 import org.wso2.carbon.utils.security.KeystoreUtils;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -91,6 +98,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -105,7 +113,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -114,6 +121,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
@@ -126,6 +134,7 @@ import static org.wso2.carbon.identity.x509Certificate.validation.X509Certificat
 import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CERT_VALIDATION_CONF_DIRECTORY;
 import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CERT_VALIDATION_CONF_FILE;
 import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CRL_VALIDATOR;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CERTS;
 import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.HTTP_ACCEPT;
 import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.HTTP_ACCEPT_OCSP;
 import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.HTTP_CONTENT_TYPE;
@@ -145,6 +154,9 @@ import static org.wso2.carbon.identity.x509Certificate.validation.X509Certificat
 import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_REG_PATH;
 import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_RETRY_COUNT;
 import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_RESOURCE_TYPE;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.X509_CA_CERT_FILE;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.X509_CA_CERT_RESOURCE_TYPE;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.X509_CERT_PREFIX;
 import static org.wso2.carbon.registry.core.RegistryConstants.PATH_SEPARATOR;
 
 /**
@@ -194,7 +206,7 @@ public class CertificateValidationUtil {
                 }
 
             } catch (XMLStreamException | FileNotFoundException | CertificateValidationException e) {
-                log.warn("Error while loading default validator configurations to the registry.", e);
+                log.warn("Error while loading default validator configurations.", e);
             } finally {
                 try {
                     if (inputStream != null) {
@@ -346,7 +358,8 @@ public class CertificateValidationUtil {
         resource.addProperty(VALIDATOR_CONF_NAME, validator.getName());
         resource.addProperty(VALIDATOR_CONF_ENABLE, Boolean.toString(validator.isEnabled()));
         resource.addProperty(VALIDATOR_CONF_PRIORITY, Integer.toString(validator.getPriority()));
-        resource.addProperty(VALIDATOR_CONF_FULL_CHAIN_VALIDATION, Boolean.toString(validator.isFullChainValidationEnabled()));
+        resource.addProperty(VALIDATOR_CONF_FULL_CHAIN_VALIDATION,
+                Boolean.toString(validator.isFullChainValidationEnabled()));
         resource.addProperty(VALIDATOR_CONF_RETRY_COUNT, Integer.toString(validator.getRetryCount()));
         registry.put(validatorConfRegPath, resource);
     }
@@ -427,7 +440,7 @@ public class CertificateValidationUtil {
      */
 
     /**
-     * Load CA certificates from registry.
+     * Load CA certificates from storage.
      *
      * @param peerCertificate peer certificate
      * @return List of issuer CA certificates
@@ -443,8 +456,8 @@ public class CertificateValidationUtil {
             if (log.isDebugEnabled()) {
                 log.debug("CA certificate registry full path: " + caRegPath);
             }
-            caCertificateList = getCACertsFromRegResource(caRegPath);
-        } catch (RegistryException | UnsupportedEncodingException e) {
+            caCertificateList = getCACertsFromConfigStore(getNormalizedName(peerCertificate.getIssuerDN().getName()));
+        } catch (UnsupportedEncodingException | ConfigurationManagementException e) {
             throw new CertificateValidationException("Error while loading CA certificates from registry in:" +
                     caRegPath, e);
         }
@@ -456,23 +469,16 @@ public class CertificateValidationUtil {
 
         try {
             Iterator trustStoreIterator = trustStoresElement.getChildElements();
-            Registry registry = getGovernanceRegistry(tenantDomain);
             List<X509Certificate> trustedCertificates = new ArrayList<>();
 
             while (trustStoreIterator.hasNext()) {
                 getAllTrustedCerts(trustStoreIterator, trustedCertificates);
             }
 
-            for (X509Certificate certificate : trustedCertificates) {
-                String caCertRegPath = getCACertRegFullPath(certificate);
-                if (log.isDebugEnabled()) {
-                    log.debug("CA certificate registry path: " + caCertRegPath);
-                }
-                addDefaultCACertificateInRegistry(registry, caCertRegPath, certificate, validatorChildElement);
-            }
-
-        } catch (UnsupportedEncodingException | CertificateValidationException e) {
-            log.error("Error while adding validator configurations in registry.", e);
+            addDefaultCACertificateInRegistry(validatorChildElement, trustedCertificates, tenantDomain);
+        } catch (CertificateMgtException | CertificateException | JsonProcessingException |
+                 CertificateValidationException e) {
+            log.error("Error while adding validator configurations in config store.", e);
         }
     }
 
@@ -531,54 +537,168 @@ public class CertificateValidationUtil {
         return new CACertificate(crlUrls, ocspUrls, x509Certificate);
     }
 
-    private static void addDefaultCACertificateInRegistry(Registry registry, String caCertRegPath,
-                                                          X509Certificate certificate,
-                                                          OMElement validatorChildElement) {
+    private static List<CACertificate> getCACertsFromConfigStore(String issuerDN) throws
+            ConfigurationManagementException, CertificateValidationException {
 
-        List<String> ocspUrls = new ArrayList<>();
-        List<String> crlUrls = new ArrayList<>();
+        org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource = CertValidationDataHolder.getInstance()
+                .getConfigurationManager()
+                .getResource(X509_CA_CERT_RESOURCE_TYPE, CERTS);
+
+        return getCertificateListFromResourceAndIssuerDN(resource, issuerDN);
+    }
+
+    private static List<CACertificate> getCertificateListFromResourceAndIssuerDN(
+            org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource, String issuerDN)
+            throws CertificateValidationException {
+
+        List<CACertificate> certificateList = new ArrayList<>();
+
         try {
-            if (!registry.resourceExists(caCertRegPath)) {
-                List<Validator> defaultValidatorConfig = getDefaultValidatorConfig(validatorChildElement);
-                boolean isSelfSignedCert = isSelfSignedCert(certificate);
-                for (Validator validator : defaultValidatorConfig) {
-                    if (validator.isEnabled()) {
-                        if (OCSP_VALIDATOR.equals(validator.getDisplayName()) && !isSelfSignedCert) {
-                            ocspUrls = getAIALocations(certificate);
-                        }
-                        else if (CRL_VALIDATOR.equals(validator.getDisplayName()) && !isSelfSignedCert) {
-                            crlUrls = getCRLUrls(certificate);
-                        }
-                    }
-                }
-                Resource resource = registry.newResource();
-                StringBuilder crlUrlReg = new StringBuilder();
-                if (CollectionUtils.isNotEmpty(crlUrls)) {
-                    for (String crlUrl : crlUrls) {
-                        crlUrlReg.append(crlUrl).append(CA_CERT_REG_CRL_OCSP_SEPERATOR);
-                    }
-                }
-
-                StringBuilder ocspUrlReg = new StringBuilder();
-                if (CollectionUtils.isNotEmpty(ocspUrls)) {
-                    for (String ocspUrl : ocspUrls) {
-                        ocspUrlReg.append(ocspUrl).append(CA_CERT_REG_CRL_OCSP_SEPERATOR);
-                    }
-                }
-                resource.addProperty(CA_CERT_REG_CRL, crlUrlReg.toString());
-                resource.addProperty(CA_CERT_REG_OCSP, ocspUrlReg.toString());
-                resource.setContent(encodeCertificate(certificate));
-                registry.put(caCertRegPath, resource);
+            List<ResourceFile> resourceFiles = resource.getFiles();
+            if (resourceFiles == null || resourceFiles.isEmpty()) {
+                log.warn("Resource files are empty for certificates in tenant: " + resource.getTenantDomain());
+                return certificateList;
             }
-        } catch (RegistryException e) {
-            log.error("Error adding default ca certificate with serial num:" + certificate.getSerialNumber() +
-                    " in registry.", e);
-        } catch (CertificateException e) {
-            log.error("Error encoding ca certificate with serial num: " + certificate.getSerialNumber() +
-                    " to add in registry.", e);
-        } catch (CertificateValidationException e) {
-            log.error("Error while validating certificate with serial num: " + certificate.getSerialNumber(), e);
+
+            ResourceFile resourceFile = resourceFiles.get(0);
+            if (resourceFile == null) {
+                log.warn("Resource file is null for certificates in tenant: " + resource.getTenantDomain());
+                return certificateList;
+            }
+
+            InputStream inputStream = CertValidationDataHolder.getInstance()
+                    .getConfigurationManager()
+                    .getFileById(X509_CA_CERT_RESOURCE_TYPE, CERTS, resourceFile.getId());
+
+            if (inputStream == null) {
+                log.warn("InputStream is null for the file in resource for IssuerDN: " + issuerDN);
+                return certificateList;
+            }
+
+            String fileContent = convertInputStreamToString(inputStream);
+            IssuerDNMap issuerDNMap = ModelSerializer.deserializeIssuerDNMap(fileContent);
+
+            List<CertObject> certObjects = issuerDNMap.getIssuerCertMap().get(issuerDN);
+            if (certObjects != null) {
+                for (CertObject certObject : certObjects) {
+                    // Extract details from the CertObject
+                    String certId = certObject.getCertId();
+                    List<String> crlUrls = certObject.getCrlUrls();
+                    List<String> ocspUrls = certObject.getOcspUrls();
+
+                    Certificate certificate = CertValidationDataHolder.getInstance()
+                            .getCertificateManagementService()
+                            .getCertificate(certId, PrivilegedCarbonContext.getThreadLocalCarbonContext()
+                                    .getTenantDomain());
+
+                    X509Certificate x509Certificate = decodeCertificate(certificate.getCertificateContent());
+
+                    CACertificate caCertificate = new CACertificate(crlUrls, ocspUrls, x509Certificate);
+                    certificateList.add(caCertificate);
+                }
+            }
+        } catch (IOException e) {
+            log.error("Error while reading the file content for IssuerDN: " + issuerDN, e);
+            throw new CertificateValidationException("Error while reading the file content for IssuerDN: " +
+                    issuerDN, e);
+        } catch (Exception e) {
+            log.error("Error while processing the resource for IssuerDN: " + issuerDN, e);
+            throw new CertificateValidationException("Error while processing the resource for IssuerDN: " +
+                    issuerDN, e);
         }
+
+        return certificateList;
+    }
+
+    private static String convertInputStreamToString(InputStream inputStream) throws IOException {
+        StringBuilder stringBuilder = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                stringBuilder.append(line);
+            }
+        }
+        return stringBuilder.toString();
+    }
+
+    private static void addDefaultCACertificateInRegistry(OMElement validatorChildElement,
+                                                          List<X509Certificate> trustedCertificates,
+                                                          String tenantDomain) throws
+            CertificateValidationException, CertificateException, CertificateMgtException, JsonProcessingException {
+
+        Map<String, List<CertObject>> issuerDNMap = new HashMap<>();
+        for (X509Certificate certificate : trustedCertificates) {
+            String issuerDN = getNormalizedName(certificate.getIssuerDN().getName());
+            String serialNumber = getNormalizedName(certificate.getSerialNumber().toString());
+
+            // Check if the serial number already exists for the given IssuerDN
+            List<CertObject> existingCertObjects = issuerDNMap.computeIfAbsent(issuerDN, k -> new ArrayList<>());
+            boolean isSerialNumberAlreadyAdded = existingCertObjects.stream()
+                    .anyMatch(certObject -> certObject.getSerialNumber().equals(serialNumber));
+
+            if (isSerialNumberAlreadyAdded) {
+                log.warn("Certificate with serial number " + serialNumber + " already exists for IssuerDN " +
+                        issuerDN);
+                continue;
+            }
+
+            List<String> ocspUrls = new ArrayList<>();
+            List<String> crlUrls = new ArrayList<>();
+            boolean isSelfSignedCert = isSelfSignedCert(certificate);
+
+            // Process default validators for this certificate
+            List<Validator> defaultValidatorConfig = getDefaultValidatorConfig(validatorChildElement);
+            for (Validator validator : defaultValidatorConfig) {
+                if (validator.isEnabled()) {
+                    if (OCSP_VALIDATOR.equals(validator.getDisplayName()) &&
+                            !isSelfSignedCert) {
+                        ocspUrls = getAIALocations(certificate);
+                    } else if (CRL_VALIDATOR.equals(validator.getDisplayName()) &&
+                            !isSelfSignedCert) {
+                        crlUrls = getCRLUrls(certificate);
+                    }
+                }
+            }
+
+            Certificate cert = new Certificate.Builder()
+                    .name(X509_CERT_PREFIX + UUID.randomUUID())
+                    .certificateContent(encodeCertificate(certificate))
+                    .build();
+            String certId = CertValidationDataHolder.getInstance().getCertificateManagementService()
+                    .addCertificate(cert, tenantDomain);
+
+            CertObject certObject = new CertObject();
+            certObject.setCertId(certId); // Assuming serialNumber as certId for simplicity
+            certObject.setSerialNumber(serialNumber);
+            certObject.setCrlUrls(crlUrls);
+            certObject.setOcspUrls(ocspUrls);
+
+            existingCertObjects.add(certObject);
+        }
+
+        IssuerDNMap combinedIssuerDNMap = new IssuerDNMap();
+        for (Map.Entry<String, List<CertObject>> entry : issuerDNMap.entrySet()) {
+            String issuerDN = entry.getKey();
+            List<CertObject> certObjects = entry.getValue();
+            combinedIssuerDNMap.getIssuerCertMap().put(issuerDN, certObjects);
+        }
+
+        String serializedContent = ModelSerializer.serializeIssuerDNMap(combinedIssuerDNMap);
+
+        InputStream inputStream = new ByteArrayInputStream(serializedContent.getBytes(StandardCharsets.UTF_8));
+
+        ResourceFile resourceFile = new ResourceFile();
+        resourceFile.setName(X509_CA_CERT_FILE);
+        resourceFile.setInputStream(inputStream);
+
+        org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource =
+                new org.wso2.carbon.identity.configuration.mgt.core.model.Resource(CERTS, X509_CA_CERT_RESOURCE_TYPE);
+        resource.setHasFile(true);
+        resource.setFiles(new ArrayList<>());
+        resource.getFiles().add(resourceFile);
+
+        // Add the resource to the configuration store
+        addResource(resource);
     }
 
     private static void getAllTrustedCerts(Iterator trustStoreIterator, List<X509Certificate> trustedCertificates) {
@@ -798,8 +918,9 @@ public class CertificateValidationUtil {
             if (crlStream != null) {
                 crlStream.close();
             }
-            if (connection != null)
+            if (connection != null) {
                 connection.disconnect();
+            }
         }
         return x509CRL;
     }
@@ -1256,7 +1377,7 @@ public class CertificateValidationUtil {
 
             org.wso2.carbon.identity.configuration.mgt.core.model.Resource validatorResource =
                     buildResourceFromValidator(validator, getNormalizedName(displayName));
-            addValidatorResource(validatorResource);
+            addResource(validatorResource);
         }
     }
 
@@ -1290,18 +1411,18 @@ public class CertificateValidationUtil {
     }
 
     /**
-     * Adds a validator resource to the configuration management system.
+     * Adds specified resource to the configuration management system.
      *
-     * @param validatorResource                 The resource object to add.
+     * @param resource                          The resource object to add.
      * @throws CertificateValidationException   If an error occurs while adding the resource.
      */
-    private static void addValidatorResource(
-            org.wso2.carbon.identity.configuration.mgt.core.model.Resource validatorResource)
+    private static void addResource(
+            org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource)
             throws CertificateValidationException {
 
         try {
             CertValidationDataHolder.getInstance().getConfigurationManager()
-                    .addResource(validatorResource.getResourceType(), validatorResource);
+                    .addResource(resource.getResourceType(), resource);
         } catch (ConfigurationManagementException e) {
             if (ERROR_CODE_RESOURCE_ALREADY_EXISTS.getCode().equals(e.getErrorCode())) {
                 log.debug("Resource already exists in the tenant config store.");

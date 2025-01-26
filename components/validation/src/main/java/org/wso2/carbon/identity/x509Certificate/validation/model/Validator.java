@@ -19,7 +19,7 @@
 package org.wso2.carbon.identity.x509Certificate.validation.model;
 
 /**
- * Model representation of a Certificate Validator
+ * Model representation of a Certificate Validator.
  */
 public class Validator {
 

@@ -22,7 +22,7 @@ import java.security.cert.X509Certificate;
 import java.util.List;
 
 /**
- * Model representation of a CA certificate
+ * Model representation of a CA certificate.
  */
 public class CACertificate {
 
