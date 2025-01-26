@@ -458,7 +458,7 @@ public class CertificateValidationUtil {
             if (log.isDebugEnabled()) {
                 log.debug("CA certificate registry full path: " + caRegPath);
             }
-            caCertificateList = getCACertsFromRegResource(getNormalizedName(peerCertificate.getIssuerDN().getName()));
+            caCertificateList = getCACertsFromConfigStore(getNormalizedName(peerCertificate.getIssuerDN().getName()));
         } catch (UnsupportedEncodingException | ConfigurationManagementException e) {
             throw new CertificateValidationException("Error while loading CA certificates from registry in:" +
                     caRegPath, e);
@@ -500,7 +500,7 @@ public class CertificateValidationUtil {
                 replaceAll("%", ":");
     }
 
-    private static List<CACertificate> getCACertsFromRegResource(String issuerDN) throws
+    private static List<CACertificate> getCACertsFromConfigStore(String issuerDN) throws
             ConfigurationManagementException, CertificateValidationException {
 
         org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource = CertValidationDataHolder.getInstance()
