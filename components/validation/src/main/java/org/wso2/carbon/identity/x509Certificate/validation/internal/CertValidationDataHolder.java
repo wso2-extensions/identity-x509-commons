@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2018, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2018-2025, WSO2 LLC. (http://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
+ * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.identity.x509Certificate.validation.internal;
 
+import org.wso2.carbon.identity.configuration.mgt.core.ConfigurationManager;
 import org.wso2.carbon.registry.core.service.RegistryService;
 import org.wso2.carbon.user.core.service.RealmService;
 
@@ -29,6 +30,7 @@ public class CertValidationDataHolder {
     private static RegistryService registryService;
     private static RealmService realmService;
     private static CertValidationDataHolder instance = new CertValidationDataHolder();
+    private static ConfigurationManager configurationManager;
 
     private CertValidationDataHolder() {
     }
@@ -83,4 +85,23 @@ public class CertValidationDataHolder {
         this.realmService = realmService;
     }
 
+    /**
+     * Set Configuration Manager.
+     *
+     * @param configurationManager configuration manager
+     */
+    public void setConfigurationManager(ConfigurationManager configurationManager) {
+
+        this.configurationManager = configurationManager;
+    }
+
+    /**
+     * Get Configuration Manager.
+     *
+     * @return configuration manager
+     */
+    public ConfigurationManager getConfigurationManager() {
+
+        return configurationManager;
+    }
 }
