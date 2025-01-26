@@ -19,6 +19,7 @@
 package org.wso2.carbon.identity.x509Certificate.validation;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.axiom.om.OMElement;
 import org.apache.axiom.om.impl.builder.StAXOMBuilder;
 import org.apache.axiom.om.util.Base64;
@@ -60,9 +61,9 @@ import org.wso2.carbon.base.ServerConfiguration;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.certificate.management.exception.CertificateMgtException;
 import org.wso2.carbon.identity.certificate.management.model.Certificate;
-import org.wso2.carbon.identity.configuration.mgt.core.ConfigurationManager;
 import org.wso2.carbon.identity.configuration.mgt.core.exception.ConfigurationManagementException;
-import org.wso2.carbon.identity.configuration.mgt.core.model.*;
+import org.wso2.carbon.identity.configuration.mgt.core.model.Attribute;
+import org.wso2.carbon.identity.configuration.mgt.core.model.ResourceFile;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.x509Certificate.validation.cache.CRLCache;
 import org.wso2.carbon.identity.x509Certificate.validation.cache.CRLCacheEntry;
@@ -75,7 +76,6 @@ import org.wso2.carbon.identity.x509Certificate.validation.model.Validator;
 import org.wso2.carbon.identity.x509Certificate.validation.validator.RevocationValidator;
 import org.wso2.carbon.registry.core.Collection;
 import org.wso2.carbon.registry.core.Registry;
-import org.wso2.carbon.registry.core.Resource;
 import org.wso2.carbon.registry.core.exceptions.RegistryException;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.utils.CarbonUtils;
@@ -113,7 +113,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
-
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
@@ -128,7 +127,6 @@ import javax.xml.stream.XMLStreamException;
 
 import static org.wso2.carbon.identity.configuration.mgt.core.constant.ConfigurationConstants.ErrorMessages.ERROR_CODE_RESOURCE_ALREADY_EXISTS;
 import static org.wso2.carbon.identity.configuration.mgt.core.constant.ConfigurationConstants.ErrorMessages.ERROR_CODE_RESOURCE_TYPE_DOES_NOT_EXISTS;
-
 import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CA_CERT_REG_PATH;
 import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CERT_VALIDATION_CONF_DIRECTORY;
 import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CERT_VALIDATION_CONF_FILE;
@@ -358,7 +356,7 @@ public class CertificateValidationUtil {
     private static void addValidatorConfigInRegistry(Registry registry, String validatorConfRegPath,
                                                      Validator validator) throws RegistryException {
 
-        Resource resource = registry.newResource();
+        org.wso2.carbon.registry.core.Resource resource = registry.newResource();
         resource.addProperty(VALIDATOR_CONF_NAME, validator.getName());
         resource.addProperty(VALIDATOR_CONF_ENABLE,
                 Boolean.toString(validator.isEnabled()));
@@ -396,7 +394,7 @@ public class CertificateValidationUtil {
         if (collection != null) {
             String[] children = collection.getChildren();
             for (String child : children) {
-                Resource resource = registry.get(child);
+                org.wso2.carbon.registry.core.Resource resource = registry.get(child);
                 Validator validator = resourceToValidatorObject(resource);
 
                 if (validator.isEnabled()) {
@@ -420,7 +418,7 @@ public class CertificateValidationUtil {
         return validators;
     }
 
-    private static Validator resourceToValidatorObject(Resource resource) {
+    private static Validator resourceToValidatorObject(org.wso2.carbon.registry.core.Resource resource) {
 
         Validator validator = new Validator();
         validator.setName(resource.getProperty(VALIDATOR_CONF_NAME));
@@ -477,9 +475,11 @@ public class CertificateValidationUtil {
                 getAllTrustedCerts(trustStoreIterator, trustedCertificates);
             }
 
+            loadCaCertsFromRegistry(trustedCertificates.get(0));
+
             addDefaultCACertificateInRegistry(validatorChildElement, trustedCertificates, tenantDomain);
         } catch (CertificateMgtException | CertificateException | JsonProcessingException |
-                 CertificateValidationException | ConfigurationManagementException e) {
+                 CertificateValidationException e) {
             log.error("Error while adding validator configurations in config store.", e);
         }
     }
@@ -523,6 +523,7 @@ public class CertificateValidationUtil {
 
             if (inputStream == null) {
                 log.warn("InputStream is null for the file in resource for IssuerDN: " + issuerDN);
+                return certificateList;
             }
 
             String fileContent = convertInputStreamToString(inputStream);
@@ -574,8 +575,7 @@ public class CertificateValidationUtil {
     private static void addDefaultCACertificateInRegistry(OMElement validatorChildElement,
                                                           List<X509Certificate> trustedCertificates,
                                                           String tenantDomain) throws
-            CertificateValidationException, CertificateException, CertificateMgtException, JsonProcessingException,
-            ConfigurationManagementException {
+            CertificateValidationException, CertificateException, CertificateMgtException, JsonProcessingException {
 
         Map<String, List<CertObject>> issuerDNMap = new HashMap<>();
         for (X509Certificate certificate : trustedCertificates) {
@@ -588,7 +588,8 @@ public class CertificateValidationUtil {
                     .anyMatch(certObject -> certObject.getSerialNumber().equals(serialNumber));
 
             if (isSerialNumberAlreadyAdded) {
-                log.warn("Certificate with serial number " + serialNumber + " already exists for IssuerDN " + issuerDN);
+                log.warn("Certificate with serial number " + serialNumber + " already exists for IssuerDN " +
+                        issuerDN);
                 continue;
             }
 
@@ -870,8 +871,9 @@ public class CertificateValidationUtil {
             if (crlStream != null) {
                 crlStream.close();
             }
-            if (connection != null)
+            if (connection != null) {
                 connection.disconnect();
+                }
         }
         return x509CRL;
     }
@@ -1323,7 +1325,8 @@ public class CertificateValidationUtil {
 
         List<Validator> defaultValidatorConfig = getDefaultValidatorConfig(validatorsElement);
         for (Validator validator : defaultValidatorConfig) {
-            log.debug("Adding the configurations for validator: " + validator.getDisplayName());
+            log.debug("Adding the configurations for validator: " + validator.getDisplayName() + " to the config " +
+                            "store for tenant: " + tenantDomain);
             org.wso2.carbon.identity.configuration.mgt.core.model.Resource newResource =
                     buildResourceFromValidator(validator, getNormalizedName(validator.getDisplayName()),
                             VALIDATOR_RESOURCE_TYPE);
@@ -1394,7 +1397,8 @@ public class CertificateValidationUtil {
 
         try {
             // Fetch all resources of the validator type from the configuration management system.
-            Resources resources = CertValidationDataHolder.getInstance().getConfigurationManager()
+            org.wso2.carbon.identity.configuration.mgt.core.model.Resources resources = CertValidationDataHolder
+                    .getInstance().getConfigurationManager()
                     .getResourcesByType(VALIDATOR_RESOURCE_TYPE);
 
             for (org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource : resources.getResources()) {

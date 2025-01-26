@@ -23,7 +23,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Represents a map of issuer DNs to a list of certificates.
+ */
 public class IssuerDNMap {
+
     private Map<String, List<CertObject>> issuerCertMap = new HashMap<>();
 
     public Map<String, List<CertObject>> getIssuerCertMap() {

@@ -20,9 +20,11 @@
 package org.wso2.carbon.identity.x509Certificate.validation.model;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+/**
+ * Utility class to serialize and deserialize model objects.
+ */
 public class ModelSerializer {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();

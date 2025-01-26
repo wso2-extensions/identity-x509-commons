@@ -21,7 +21,11 @@ package org.wso2.carbon.identity.x509Certificate.validation.model;
 
 import java.util.List;
 
+/**
+ * Represents a certificate object.
+ */
 public class CertObject {
+
     private List<String> crlUrls;
     private List<String> ocspUrls;
     private String certId;

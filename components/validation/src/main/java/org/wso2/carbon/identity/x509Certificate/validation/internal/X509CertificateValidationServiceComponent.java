@@ -153,6 +153,7 @@ public class X509CertificateValidationServiceComponent {
             unbind = "unsetCertificateManagementService")
     protected void setCertificateManagementService(CertificateManagementService certificateManagementService) {
 
+        log.debug("Setting the Certificate Management Service.");
         CertValidationDataHolder.getInstance().setCertificateManagementService(certificateManagementService);
     }
 
@@ -163,9 +164,7 @@ public class X509CertificateValidationServiceComponent {
      */
     protected void unsetCertificateManagementService(CertificateManagementService certificateManagementService) {
 
-        if (log.isDebugEnabled()) {
-            log.debug("Unset certificate Management Service.");
-        }
+        log.debug("Unset certificate Management Service.");
         CertValidationDataHolder.getInstance().setCertificateManagementService(null);
     }
 
@@ -177,11 +176,13 @@ public class X509CertificateValidationServiceComponent {
             unbind = "unsetIdentityCoreInitializedEventService"
     )
     protected void setIdentityCoreInitializedEventService(IdentityCoreInitializedEvent identityCoreInitializedEvent) {
+        log.debug("Identity Core is initialized.");
         /* reference IdentityCoreInitializedEvent service to guarantee that this component will wait until identity core
          is started */
     }
 
     protected void unsetIdentityCoreInitializedEventService(IdentityCoreInitializedEvent identityCoreInitializedEvent) {
+        log.debug("Unset Identity Core initialized event service.");
         /* reference IdentityCoreInitializedEvent service to guarantee that this component will wait until identity core
          is started */
     }
