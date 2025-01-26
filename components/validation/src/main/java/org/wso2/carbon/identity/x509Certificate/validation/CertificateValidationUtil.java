@@ -129,9 +129,9 @@ public class CertificateValidationUtil {
     private static final Log log = LogFactory.getLog(CertificateValidationUtil.class);
 
     /**
-     * ********************************************
-     * Util methods for Validator Configurations.
-     * ********************************************
+     * Add default validator configurations to the config storage.
+     *
+     * @param tenantDomain tenant domain
      */
     public static void addDefaultValidationConfigInRegistry(String tenantDomain) {
 
