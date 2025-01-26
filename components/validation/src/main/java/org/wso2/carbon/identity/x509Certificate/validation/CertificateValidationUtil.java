@@ -127,7 +127,6 @@ import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
 
 import static org.wso2.carbon.identity.configuration.mgt.core.constant.ConfigurationConstants.ErrorMessages.ERROR_CODE_RESOURCE_ALREADY_EXISTS;
-import static org.wso2.carbon.identity.configuration.mgt.core.constant.ConfigurationConstants.ErrorMessages.ERROR_CODE_RESOURCE_DOES_NOT_EXISTS;
 import static org.wso2.carbon.identity.configuration.mgt.core.constant.ConfigurationConstants.ErrorMessages.ERROR_CODE_RESOURCE_TYPE_DOES_NOT_EXISTS;
 
 import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CA_CERT_REG_PATH;
@@ -154,8 +153,8 @@ import static org.wso2.carbon.identity.x509Certificate.validation.X509Certificat
 import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_REG_PATH;
 import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_RETRY_COUNT;
 import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_RESOURCE_TYPE;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.X509_CA_CERT_ALIAS;
 import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.X509_CA_CERT_FILE;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.X509_CA_CERT_RESOURCE_TYPE;
 import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.X509_CERT_PREFIX;
 import static org.wso2.carbon.registry.core.RegistryConstants.PATH_SEPARATOR;
 
@@ -206,7 +205,7 @@ public class CertificateValidationUtil {
                 }
 
             } catch (XMLStreamException | FileNotFoundException | CertificateValidationException e) {
-                log.warn("Error while loading default validator configurations to the registry.", e);
+                log.warn("Error while loading default validator configurations.", e);
             } finally {
                 try {
                     if (inputStream != null) {
@@ -240,7 +239,7 @@ public class CertificateValidationUtil {
     }
 
     /**
-     * Load Validator Configurations from Registry and return the enabled validators' configurations.
+     * Load Validator Configurations from config store and return the enabled validators' configurations.
      *
      * @return List of registered validators
      * @throws CertificateValidationException certificateValidationException
@@ -443,7 +442,7 @@ public class CertificateValidationUtil {
      */
 
     /**
-     * Load CA certificates from registry.
+     * Load CA certificates from config store.
      *
      * @param peerCertificate peer certificate
      * @return List of issuer CA certificates
@@ -478,16 +477,7 @@ public class CertificateValidationUtil {
                 getAllTrustedCerts(trustStoreIterator, trustedCertificates);
             }
 
-            try {
-                CertValidationDataHolder.getInstance()
-                        .getConfigurationManager().getResource(X509_CA_CERT_ALIAS, CERTS);
-            } catch (ConfigurationManagementException e) {
-                log.debug("Resource type X509_CA is not available in the configuration store.");
-                addResourceTypeIfNotExists(e, X509_CA_CERT_ALIAS, tenantDomain);
-                Map<String, List<CertObject>> issuerDNMap = new HashMap<>();
-                addDefaultCACertificateInRegistry(validatorChildElement, trustedCertificates, issuerDNMap, tenantDomain);
-            }
-
+            addDefaultCACertificateInRegistry(validatorChildElement, trustedCertificates, tenantDomain);
         } catch (CertificateMgtException | CertificateException | JsonProcessingException |
                  CertificateValidationException | ConfigurationManagementException e) {
             log.error("Error while adding validator configurations in config store.", e);
@@ -515,7 +505,7 @@ public class CertificateValidationUtil {
 
         org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource = CertValidationDataHolder.getInstance()
                 .getConfigurationManager()
-                .getResource(X509_CA_CERT_ALIAS, CERTS);
+                .getResource(X509_CA_CERT_RESOURCE_TYPE, CERTS);
 
         return getCertificateListFromResourceAndIssuerDN(resource, issuerDN);
     }
@@ -529,7 +519,7 @@ public class CertificateValidationUtil {
         try {
             InputStream inputStream = CertValidationDataHolder.getInstance()
                     .getConfigurationManager()
-                    .getFileById(X509_CA_CERT_ALIAS, CERTS, resource.getFiles().get(0).getId());
+                    .getFileById(X509_CA_CERT_RESOURCE_TYPE, CERTS, resource.getFiles().get(0).getId());
 
             if (inputStream == null) {
                 log.warn("InputStream is null for the file in resource for IssuerDN: " + issuerDN);
@@ -583,11 +573,11 @@ public class CertificateValidationUtil {
 
     private static void addDefaultCACertificateInRegistry(OMElement validatorChildElement,
                                                           List<X509Certificate> trustedCertificates,
-                                                          Map<String, List<CertObject>> issuerDNMap,
                                                           String tenantDomain) throws
             CertificateValidationException, CertificateException, CertificateMgtException, JsonProcessingException,
             ConfigurationManagementException {
 
+        Map<String, List<CertObject>> issuerDNMap = new HashMap<>();
         for (X509Certificate certificate : trustedCertificates) {
             String issuerDN = getNormalizedName(certificate.getIssuerDN().getName());
             String serialNumber = getNormalizedName(certificate.getSerialNumber().toString());
@@ -652,7 +642,7 @@ public class CertificateValidationUtil {
         resourceFile.setInputStream(inputStream);
 
         org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource =
-                new org.wso2.carbon.identity.configuration.mgt.core.model.Resource(CERTS, X509_CA_CERT_ALIAS);
+                new org.wso2.carbon.identity.configuration.mgt.core.model.Resource(CERTS, X509_CA_CERT_RESOURCE_TYPE);
         resource.setHasFile(true);
         resource.setFiles(new ArrayList<>());
         resource.getFiles().add(resourceFile);
@@ -1331,93 +1321,13 @@ public class CertificateValidationUtil {
     private static void addDefaultValidatorConfigToConfigStore(OMElement validatorsElement, String tenantDomain)
             throws CertificateValidationException {
 
-        boolean isAdded = addValidatorResourceType(tenantDomain);
-        if (!isAdded) {
-            log.debug("Validator type is already added to the tenant config store. Skip adding validator configs");
-            return;
-        }
-
         List<Validator> defaultValidatorConfig = getDefaultValidatorConfig(validatorsElement);
         for (Validator validator : defaultValidatorConfig) {
-            addValidatorResource(validator);
-        }
-    }
-
-    private static boolean addValidatorResourceType(String tenantDomain) throws CertificateValidationException {
-
-        boolean isAdded = false;
-        ConfigurationManager configurationManager = CertValidationDataHolder.getInstance().getConfigurationManager();
-        try {
-            ResourceType resourceType = configurationManager.getResourceType(VALIDATOR_RESOURCE_TYPE);
-            if (resourceType != null) {
-                log.debug(String.format("Validator type %s is already available in %s tenant config store.",
-                            VALIDATOR_RESOURCE_TYPE, tenantDomain));
-                isAdded = true;
-            }
-        } catch (ConfigurationManagementException e) {
-            if (ERROR_CODE_RESOURCE_TYPE_DOES_NOT_EXISTS.getCode().equals(e.getErrorCode())) {
-                ResourceTypeAdd resourceTypeAdd = new ResourceTypeAdd();
-                resourceTypeAdd.setName(VALIDATOR_RESOURCE_TYPE);
-                try {
-                    configurationManager.addResourceType(resourceTypeAdd);
-                    if (log.isDebugEnabled()) {
-                        log.debug(String.format("Validator type %s is added to %s tenant config store.",
-                                VALIDATOR_RESOURCE_TYPE, tenantDomain));
-                    }
-                    isAdded = true;
-                } catch (ConfigurationManagementException ex) {
-                    throw new CertificateValidationException(
-                            "Error while adding resource type: " + VALIDATOR_RESOURCE_TYPE, ex);
-                }
-            } else {
-                throw new CertificateValidationException(
-                        "Error while checking existence of the validator type: " + VALIDATOR_RESOURCE_TYPE, e);
-            }
-        }
-
-        return isAdded;
-    }
-
-    private static void addValidatorResource(Validator validator) throws CertificateValidationException {
-
-        String displayName = validator.getDisplayName();
-        if (log.isDebugEnabled()) {
-            log.debug("Adding the configurations for validator: " + displayName);
-        }
-
-        // Build a new resource from the validator configuration.
-        org.wso2.carbon.identity.configuration.mgt.core.model.Resource newResource =
-                buildResourceFromValidator(validator, getNormalizedName(displayName), VALIDATOR_RESOURCE_TYPE);
-        try {
-            CertValidationDataHolder.getInstance().getConfigurationManager()
-                    .addResource(newResource.getResourceType(), newResource);
-        } catch (ConfigurationManagementException e) {
-            if (ERROR_CODE_RESOURCE_ALREADY_EXISTS.getCode().equals(e.getErrorCode())) {
-                log.debug("Resource already exists in the tenant config store.");
-            } else {
-                throw new CertificateValidationException("Error while adding validator configurations.", e);
-            }
-        }
-    }
-
-    private static void addResourceTypeIfNotExists(ConfigurationManagementException e, String resourceType,
-                                                   String tenantDomain) throws CertificateValidationException {
-        if (ERROR_CODE_RESOURCE_TYPE_DOES_NOT_EXISTS.getCode().equals(e.getErrorCode())) {
-            ResourceTypeAdd resourceTypeAdd = new ResourceTypeAdd();
-            resourceTypeAdd.setName(resourceType);
-            try {
-                CertValidationDataHolder.getInstance().getConfigurationManager().addResourceType(resourceTypeAdd);
-            } catch (ConfigurationManagementException ex) {
-                if (log.isDebugEnabled()) {
-                    log.debug("Error while adding resource type: " + resourceType, ex);
-                }
-            }
-            if (log.isDebugEnabled()) {
-                log.debug(String.format("Configuration for %s is added to %s tenant config store.",
-                        resourceType, tenantDomain));
-            }
-        } else if (!ERROR_CODE_RESOURCE_DOES_NOT_EXISTS.getCode().equals(e.getErrorCode())) {
-            throw new CertificateValidationException("Error while fetching validator configurations.", e);
+            log.debug("Adding the configurations for validator: " + validator.getDisplayName());
+            org.wso2.carbon.identity.configuration.mgt.core.model.Resource newResource =
+                    buildResourceFromValidator(validator, getNormalizedName(validator.getDisplayName()),
+                            VALIDATOR_RESOURCE_TYPE);
+            addResource(newResource);
         }
     }
 
@@ -1435,15 +1345,22 @@ public class CertificateValidationUtil {
      * Method to add a resource.
      *
      * @param newResource   New resource to be added.
-     * @return  Added resource.
-     * @throws ConfigurationManagementException If an error occurred when adding a new resource.
      */
-    private static org.wso2.carbon.identity.configuration.mgt.core.model.Resource addResource(
-            org.wso2.carbon.identity.configuration.mgt.core.model.Resource newResource)
-            throws ConfigurationManagementException {
+    private static void addResource(
+            org.wso2.carbon.identity.configuration.mgt.core.model.Resource newResource) {
 
-        return CertValidationDataHolder.getInstance().getConfigurationManager()
-                .addResource(newResource.getResourceType(), newResource);
+        try {
+            CertValidationDataHolder.getInstance().getConfigurationManager()
+                    .addResource(newResource.getResourceType(), newResource);
+        } catch (ConfigurationManagementException e) {
+            if (ERROR_CODE_RESOURCE_ALREADY_EXISTS.getCode().equals(e.getErrorCode())) {
+                log.debug("Resource already exists in the tenant config store.");
+            } else if (ERROR_CODE_RESOURCE_TYPE_DOES_NOT_EXISTS.getCode().equals(e.getErrorCode())) {
+                log.error("Resource type does not exist in the tenant config store.");
+            } else {
+                log.error("Error while adding validator configurations.", e);
+            }
+        }
     }
 
     /**
