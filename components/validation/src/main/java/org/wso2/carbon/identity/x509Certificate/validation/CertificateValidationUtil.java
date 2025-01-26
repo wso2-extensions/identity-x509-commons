@@ -119,6 +119,31 @@ import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
 
 import static org.wso2.carbon.identity.configuration.mgt.core.constant.ConfigurationConstants.ErrorMessages.ERROR_CODE_RESOURCE_ALREADY_EXISTS;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CA_CERT_REG_CRL;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CA_CERT_REG_CRL_OCSP_SEPERATOR;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CA_CERT_REG_OCSP;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CA_CERT_REG_PATH;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CERT_VALIDATION_CONF_DIRECTORY;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CERT_VALIDATION_CONF_FILE;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CRL_VALIDATOR;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.HTTP_ACCEPT;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.HTTP_ACCEPT_OCSP;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.HTTP_CONTENT_TYPE;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.HTTP_CONTENT_TYPE_OCSP;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.OCSP_VALIDATOR;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.TRUSTSTORE_CONF;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.TRUSTSTORE_CONF_FILE;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.TRUSTSTORE_CONF_PASSWORD;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.TRUSTSTORE_CONF_TYPE_DEFAULT;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_DISPLAY_NAME;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_ELEMENT_PROPERTY_NAME;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_ENABLE;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_FULL_CHAIN_VALIDATION;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_NAME;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_PRIORITY;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_REG_PATH;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_RETRY_COUNT;
 import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_RESOURCE_TYPE;
 import static org.wso2.carbon.registry.core.RegistryConstants.PATH_SEPARATOR;
 
@@ -217,7 +242,7 @@ public class CertificateValidationUtil {
     private static List<RevocationValidator> getRevocationValidatorsFromRegistry()
             throws CertificateValidationException {
 
-        String validatorConfRegPath = X509CertificateValidationConstants.VALIDATOR_CONF_REG_PATH;
+        String validatorConfRegPath = VALIDATOR_CONF_REG_PATH;
         List<RevocationValidator> validators = null;
 
         try {
@@ -243,9 +268,8 @@ public class CertificateValidationUtil {
 
     private static File getValidatorConfigFile() {
 
-        String configFilePath = CarbonUtils.getCarbonConfigDirPath() + File.separator +
-                X509CertificateValidationConstants.CERT_VALIDATION_CONF_DIRECTORY + File.separator +
-                X509CertificateValidationConstants.CERT_VALIDATION_CONF_FILE;
+        String configFilePath = CarbonUtils.getCarbonConfigDirPath() + File.separator + CERT_VALIDATION_CONF_DIRECTORY +
+                File.separator + CERT_VALIDATION_CONF_FILE;
 
         File configFile = new File(configFilePath);
         if (!configFile.exists()) {
@@ -257,12 +281,12 @@ public class CertificateValidationUtil {
 
     private static boolean isTrustStoreConfigProperty(OMElement childElement) {
 
-        return childElement.getLocalName().equals(X509CertificateValidationConstants.TRUSTSTORE_CONF);
+        return childElement.getLocalName().equals(TRUSTSTORE_CONF);
     }
 
     private static boolean isValidatorConfigProperty(OMElement childElement) {
 
-        return childElement.getLocalName().equals(X509CertificateValidationConstants.VALIDATOR_CONF);
+        return childElement.getLocalName().equals(VALIDATOR_CONF);
     }
 
     private static void addDefaultValidatorConfig(OMElement validatorsElement, String tenantDomain) {
@@ -271,8 +295,8 @@ public class CertificateValidationUtil {
 
         // iterate through the validator config list and write to the registry
         for (Validator validator : defaultValidatorConfig) {
-            String validatorConfRegPath = X509CertificateValidationConstants.VALIDATOR_CONF_REG_PATH +
-                    PATH_SEPARATOR + getNormalizedName(validator.getDisplayName());
+            String validatorConfRegPath =
+                    VALIDATOR_CONF_REG_PATH + PATH_SEPARATOR + getNormalizedName(validator.getDisplayName());
             if (log.isDebugEnabled()) {
                 log.debug("Adding default validator configurations to registry in: " +
                         validatorConfRegPath);
@@ -298,18 +322,14 @@ public class CertificateValidationUtil {
         Iterator validatorIterator = validatorsElement.getChildElements();
         while (validatorIterator.hasNext()) {
             OMElement validatorElement = (OMElement) validatorIterator.next();
-            String name = validatorElement.getAttributeValue(
-                    new QName(X509CertificateValidationConstants.VALIDATOR_CONF_NAME));
-            String displayName = validatorElement.getAttributeValue(
-                    new QName(X509CertificateValidationConstants.VALIDATOR_CONF_DISPLAY_NAME));
-            String enable = validatorElement.getAttributeValue(
-                    new QName(X509CertificateValidationConstants.VALIDATOR_CONF_ENABLE));
+            String name = validatorElement.getAttributeValue(new QName(VALIDATOR_CONF_NAME));
+            String displayName = validatorElement.getAttributeValue(new QName(VALIDATOR_CONF_DISPLAY_NAME));
+            String enable = validatorElement.getAttributeValue(new QName(VALIDATOR_CONF_ENABLE));
 
             Map<String, String> validatorProperties = getValidatorProperties(validatorElement);
-            String priority = validatorProperties.get(X509CertificateValidationConstants.VALIDATOR_CONF_PRIORITY);
-            String fullChainValidation = validatorProperties.get(
-                    X509CertificateValidationConstants.VALIDATOR_CONF_FULL_CHAIN_VALIDATION);
-            String retryCount = validatorProperties.get(X509CertificateValidationConstants.VALIDATOR_CONF_RETRY_COUNT);
+            String priority = validatorProperties.get(VALIDATOR_CONF_PRIORITY);
+            String fullChainValidation = validatorProperties.get(VALIDATOR_CONF_FULL_CHAIN_VALIDATION);
+            String retryCount = validatorProperties.get(VALIDATOR_CONF_RETRY_COUNT);
 
             Validator validator = new Validator(name, displayName, Boolean.parseBoolean(enable),
                     Integer.parseInt(priority), Boolean.parseBoolean(fullChainValidation),
@@ -323,15 +343,11 @@ public class CertificateValidationUtil {
                                                      Validator validator) throws RegistryException {
 
         Resource resource = registry.newResource();
-        resource.addProperty(X509CertificateValidationConstants.VALIDATOR_CONF_NAME, validator.getName());
-        resource.addProperty(X509CertificateValidationConstants.VALIDATOR_CONF_ENABLE,
-                Boolean.toString(validator.isEnabled()));
-        resource.addProperty(X509CertificateValidationConstants.VALIDATOR_CONF_PRIORITY,
-                Integer.toString(validator.getPriority()));
-        resource.addProperty(X509CertificateValidationConstants.VALIDATOR_CONF_FULL_CHAIN_VALIDATION,
-                Boolean.toString(validator.isFullChainValidationEnabled()));
-        resource.addProperty(X509CertificateValidationConstants.VALIDATOR_CONF_RETRY_COUNT,
-                Integer.toString(validator.getRetryCount()));
+        resource.addProperty(VALIDATOR_CONF_NAME, validator.getName());
+        resource.addProperty(VALIDATOR_CONF_ENABLE, Boolean.toString(validator.isEnabled()));
+        resource.addProperty(VALIDATOR_CONF_PRIORITY, Integer.toString(validator.getPriority()));
+        resource.addProperty(VALIDATOR_CONF_FULL_CHAIN_VALIDATION, Boolean.toString(validator.isFullChainValidationEnabled()));
+        resource.addProperty(VALIDATOR_CONF_RETRY_COUNT, Integer.toString(validator.getRetryCount()));
         registry.put(validatorConfRegPath, resource);
     }
 
@@ -342,8 +358,8 @@ public class CertificateValidationUtil {
         while (it.hasNext()) {
             OMElement validatorParamElement = (OMElement) it.next();
             if (validatorParamElement != null) {
-                String attributeName = validatorParamElement.getAttributeValue(new QName(
-                        X509CertificateValidationConstants.VALIDATOR_CONF_ELEMENT_PROPERTY_NAME));
+                String attributeName =
+                        validatorParamElement.getAttributeValue(new QName(VALIDATOR_CONF_ELEMENT_PROPERTY_NAME));
                 String attributeValue = validatorParamElement.getText();
                 validatorProperties.put(attributeName, attributeValue);
             }
@@ -395,15 +411,12 @@ public class CertificateValidationUtil {
     private static Validator resourceToValidatorObject(Resource resource) {
 
         Validator validator = new Validator();
-        validator.setName(resource.getProperty(X509CertificateValidationConstants.VALIDATOR_CONF_NAME));
-        validator.setEnabled(Boolean.parseBoolean(resource.getProperty(
-                X509CertificateValidationConstants.VALIDATOR_CONF_ENABLE)));
-        validator.setPriority(Integer.parseInt(resource.getProperty(
-                X509CertificateValidationConstants.VALIDATOR_CONF_PRIORITY)));
-        validator.setFullChainValidationEnabled(Boolean.parseBoolean(resource.getProperty(
-                X509CertificateValidationConstants.VALIDATOR_CONF_FULL_CHAIN_VALIDATION)));
-        validator.setRetryCount(Integer.parseInt(resource.getProperty(
-                X509CertificateValidationConstants.VALIDATOR_CONF_RETRY_COUNT)));
+        validator.setName(resource.getProperty(VALIDATOR_CONF_NAME));
+        validator.setEnabled(Boolean.parseBoolean(resource.getProperty(VALIDATOR_CONF_ENABLE)));
+        validator.setPriority(Integer.parseInt(resource.getProperty(VALIDATOR_CONF_PRIORITY)));
+        validator.setFullChainValidationEnabled(
+                Boolean.parseBoolean(resource.getProperty(VALIDATOR_CONF_FULL_CHAIN_VALIDATION)));
+        validator.setRetryCount(Integer.parseInt(resource.getProperty(VALIDATOR_CONF_RETRY_COUNT)));
         return validator;
     }
 
@@ -465,18 +478,17 @@ public class CertificateValidationUtil {
 
     private static String getCACertRegFullPath(X509Certificate certificate) throws UnsupportedEncodingException {
 
-        return X509CertificateValidationConstants.CA_CERT_REG_PATH +
-                PATH_SEPARATOR +
-                URLEncoder.encode(getNormalizedName(certificate.getSubjectDN().getName()), "UTF-8").
-                        replaceAll("%", ":") + PATH_SEPARATOR +
+        return CA_CERT_REG_PATH + PATH_SEPARATOR +
+                URLEncoder.encode(getNormalizedName(certificate.getSubjectDN().getName()), "UTF-8")
+                        .replaceAll("%", ":") + PATH_SEPARATOR +
                 getNormalizedName(certificate.getSerialNumber().toString());
     }
 
     private static String getCACertsRegPath(X509Certificate peerCertificate) throws UnsupportedEncodingException {
 
-        return X509CertificateValidationConstants.CA_CERT_REG_PATH +
-                PATH_SEPARATOR + URLEncoder.encode(getNormalizedName(peerCertificate.getIssuerDN().getName()), "UTF-8").
-                replaceAll("%", ":");
+        return CA_CERT_REG_PATH + PATH_SEPARATOR +
+                URLEncoder.encode(getNormalizedName(peerCertificate.getIssuerDN().getName()), "UTF-8")
+                        .replaceAll("%", ":");
     }
 
     private static List<CACertificate> getCACertsFromRegResource(String caRegPath) throws RegistryException,
@@ -507,12 +519,10 @@ public class CertificateValidationUtil {
         List<String> ocspUrls;
         X509Certificate x509Certificate;
         try {
-            String crlUrlReg = resource.getProperty(X509CertificateValidationConstants.CA_CERT_REG_CRL);
-            String ocspUrlReg = resource.getProperty(X509CertificateValidationConstants.CA_CERT_REG_OCSP);
-            crlUrls = Arrays.asList(crlUrlReg.split(
-                    X509CertificateValidationConstants.CA_CERT_REG_CRL_OCSP_SEPERATOR));
-            ocspUrls = Arrays.asList(ocspUrlReg.split(
-                    X509CertificateValidationConstants.CA_CERT_REG_CRL_OCSP_SEPERATOR));
+            String crlUrlReg = resource.getProperty(CA_CERT_REG_CRL);
+            String ocspUrlReg = resource.getProperty(CA_CERT_REG_OCSP);
+            crlUrls = Arrays.asList(crlUrlReg.split(CA_CERT_REG_CRL_OCSP_SEPERATOR));
+            ocspUrls = Arrays.asList(ocspUrlReg.split(CA_CERT_REG_CRL_OCSP_SEPERATOR));
             byte[] regContent = (byte[]) resource.getContent();
             x509Certificate = decodeCertificate(new String(regContent));
         } catch (RegistryException | CertificateException e) {
@@ -533,12 +543,10 @@ public class CertificateValidationUtil {
                 boolean isSelfSignedCert = isSelfSignedCert(certificate);
                 for (Validator validator : defaultValidatorConfig) {
                     if (validator.isEnabled()) {
-                        if (X509CertificateValidationConstants.OCSP_VALIDATOR.equals(validator.getDisplayName()) &&
-                                !isSelfSignedCert) {
+                        if (OCSP_VALIDATOR.equals(validator.getDisplayName()) && !isSelfSignedCert) {
                             ocspUrls = getAIALocations(certificate);
                         }
-                        else if (X509CertificateValidationConstants.CRL_VALIDATOR.equals(validator.getDisplayName()) &&
-                                !isSelfSignedCert) {
+                        else if (CRL_VALIDATOR.equals(validator.getDisplayName()) && !isSelfSignedCert) {
                             crlUrls = getCRLUrls(certificate);
                         }
                     }
@@ -547,20 +555,18 @@ public class CertificateValidationUtil {
                 StringBuilder crlUrlReg = new StringBuilder();
                 if (CollectionUtils.isNotEmpty(crlUrls)) {
                     for (String crlUrl : crlUrls) {
-                        crlUrlReg.append(crlUrl).append(X509CertificateValidationConstants.
-                                CA_CERT_REG_CRL_OCSP_SEPERATOR);
+                        crlUrlReg.append(crlUrl).append(CA_CERT_REG_CRL_OCSP_SEPERATOR);
                     }
                 }
 
                 StringBuilder ocspUrlReg = new StringBuilder();
                 if (CollectionUtils.isNotEmpty(ocspUrls)) {
                     for (String ocspUrl : ocspUrls) {
-                        ocspUrlReg.append(ocspUrl).append(X509CertificateValidationConstants.
-                                CA_CERT_REG_CRL_OCSP_SEPERATOR);
+                        ocspUrlReg.append(ocspUrl).append(CA_CERT_REG_CRL_OCSP_SEPERATOR);
                     }
                 }
-                resource.addProperty(X509CertificateValidationConstants.CA_CERT_REG_CRL, crlUrlReg.toString());
-                resource.addProperty(X509CertificateValidationConstants.CA_CERT_REG_OCSP, ocspUrlReg.toString());
+                resource.addProperty(CA_CERT_REG_CRL, crlUrlReg.toString());
+                resource.addProperty(CA_CERT_REG_OCSP, ocspUrlReg.toString());
                 resource.setContent(encodeCertificate(certificate));
                 registry.put(caCertRegPath, resource);
             }
@@ -578,10 +584,8 @@ public class CertificateValidationUtil {
     private static void getAllTrustedCerts(Iterator trustStoreIterator, List<X509Certificate> trustedCertificates) {
 
         OMElement trustStoreElement = (OMElement) trustStoreIterator.next();
-        String trustStoreFile = trustStoreElement.getAttributeValue(
-                new QName(X509CertificateValidationConstants.TRUSTSTORE_CONF_FILE));
-        String trustStorePassword = trustStoreElement.getAttributeValue(
-                new QName(X509CertificateValidationConstants.TRUSTSTORE_CONF_PASSWORD));
+        String trustStoreFile = trustStoreElement.getAttributeValue(new QName(TRUSTSTORE_CONF_FILE));
+        String trustStorePassword = trustStoreElement.getAttributeValue(new QName(TRUSTSTORE_CONF_PASSWORD));
 
         KeyStore keyStore = CertificateValidationUtil.loadKeyStoreFromFile(trustStoreFile, trustStorePassword, null);
         try {
@@ -1090,10 +1094,8 @@ public class CertificateValidationUtil {
 
     private static void setRequestProperties(byte[] message, HttpPost httpPost) {
 
-        httpPost.addHeader(X509CertificateValidationConstants.HTTP_CONTENT_TYPE,
-                X509CertificateValidationConstants.HTTP_CONTENT_TYPE_OCSP);
-        httpPost.addHeader(X509CertificateValidationConstants.HTTP_ACCEPT,
-                X509CertificateValidationConstants.HTTP_ACCEPT_OCSP);
+        httpPost.addHeader(HTTP_CONTENT_TYPE, HTTP_CONTENT_TYPE_OCSP);
+        httpPost.addHeader(HTTP_ACCEPT, HTTP_ACCEPT_OCSP);
 
         httpPost.setEntity(new ByteArrayEntity(message, ContentType.create("text/xml", "UTF-8")));
     }
@@ -1156,7 +1158,7 @@ public class CertificateValidationUtil {
     private static KeyStore loadKeyStoreFromFile(String keyStorePath, String password, String type) {
 
         if (type == null) {
-            type = X509CertificateValidationConstants.TRUSTSTORE_CONF_TYPE_DEFAULT;
+            type = TRUSTSTORE_CONF_TYPE_DEFAULT;
         }
         CarbonUtils.checkSecurity();
         String absolutePath = new File(keyStorePath).getAbsolutePath();
@@ -1273,14 +1275,14 @@ public class CertificateValidationUtil {
                         VALIDATOR_RESOURCE_TYPE);
         resource.setHasAttribute(true);
         List<Attribute> attributes = new ArrayList<>();
-        attributes.add(new Attribute(X509CertificateValidationConstants.VALIDATOR_CONF_NAME, validator.getName()));
-        attributes.add(new Attribute(X509CertificateValidationConstants.VALIDATOR_CONF_ENABLE,
+        attributes.add(new Attribute(VALIDATOR_CONF_NAME, validator.getName()));
+        attributes.add(new Attribute(VALIDATOR_CONF_ENABLE,
                 Boolean.toString(validator.isEnabled())));
-        attributes.add(new Attribute(X509CertificateValidationConstants.VALIDATOR_CONF_PRIORITY,
+        attributes.add(new Attribute(VALIDATOR_CONF_PRIORITY,
                 Integer.toString(validator.getPriority())));
-        attributes.add(new Attribute(X509CertificateValidationConstants.VALIDATOR_CONF_FULL_CHAIN_VALIDATION,
+        attributes.add(new Attribute(VALIDATOR_CONF_FULL_CHAIN_VALIDATION,
                 Boolean.toString(validator.isFullChainValidationEnabled())));
-        attributes.add(new Attribute(X509CertificateValidationConstants.VALIDATOR_CONF_RETRY_COUNT,
+        attributes.add(new Attribute(VALIDATOR_CONF_RETRY_COUNT,
                 Integer.toString(validator.getRetryCount())));
         resource.setAttributes(attributes);
 
@@ -1348,19 +1350,19 @@ public class CertificateValidationUtil {
                 String value = attribute.getValue();
 
                 switch (key) {
-                    case X509CertificateValidationConstants.VALIDATOR_CONF_NAME:
+                    case VALIDATOR_CONF_NAME:
                         validator.setName(value);
                         break;
-                    case X509CertificateValidationConstants.VALIDATOR_CONF_ENABLE:
+                    case VALIDATOR_CONF_ENABLE:
                         validator.setEnabled(Boolean.parseBoolean(value));
                         break;
-                    case X509CertificateValidationConstants.VALIDATOR_CONF_PRIORITY:
+                    case VALIDATOR_CONF_PRIORITY:
                         validator.setPriority(Integer.parseInt(value));
                         break;
-                    case X509CertificateValidationConstants.VALIDATOR_CONF_FULL_CHAIN_VALIDATION:
+                    case VALIDATOR_CONF_FULL_CHAIN_VALIDATION:
                         validator.setFullChainValidationEnabled(Boolean.parseBoolean(value));
                         break;
-                    case X509CertificateValidationConstants.VALIDATOR_CONF_RETRY_COUNT:
+                    case VALIDATOR_CONF_RETRY_COUNT:
                         validator.setRetryCount(Integer.parseInt(value));
                         break;
                     default:
