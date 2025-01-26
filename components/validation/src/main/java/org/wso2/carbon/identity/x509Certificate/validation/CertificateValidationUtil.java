@@ -1331,16 +1331,6 @@ public class CertificateValidationUtil {
         }
     }
 
-    private static void addValidatorConfigInRegistry(String validatorConfRegPath,
-                                                     Validator validator) throws ConfigurationManagementException {
-
-        // Build a new resource from the validator configuration.
-        org.wso2.carbon.identity.configuration.mgt.core.model.Resource newResource =
-                buildResourceFromValidator(validator, getNormalizedName(validator.getDisplayName()),
-                        validatorConfRegPath);
-        addResource(newResource);
-    }
-
     /**
      * Method to add a resource.
      *
