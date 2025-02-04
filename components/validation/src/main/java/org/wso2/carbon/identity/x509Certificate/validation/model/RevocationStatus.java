@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package org.wso2.carbon.identity.x509Certificate.validation;
+package org.wso2.carbon.identity.x509Certificate.validation.model;
 
 /**
  * This is used to get Revocation Status message.

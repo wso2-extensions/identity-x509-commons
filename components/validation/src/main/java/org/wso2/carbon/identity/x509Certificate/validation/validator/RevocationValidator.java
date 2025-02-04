@@ -18,8 +18,8 @@
 
 package org.wso2.carbon.identity.x509Certificate.validation.validator;
 
-import org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationException;
-import org.wso2.carbon.identity.x509Certificate.validation.RevocationStatus;
+import org.wso2.carbon.identity.x509Certificate.validation.exception.CertificateValidationException;
+import org.wso2.carbon.identity.x509Certificate.validation.model.RevocationStatus;
 
 import java.security.cert.X509Certificate;
 

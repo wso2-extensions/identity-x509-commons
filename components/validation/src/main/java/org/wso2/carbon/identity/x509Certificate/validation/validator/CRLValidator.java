@@ -18,12 +18,14 @@
 
 package org.wso2.carbon.identity.x509Certificate.validation.validator;
 
-import org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationException;
-import org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil;
-import org.wso2.carbon.identity.x509Certificate.validation.RevocationStatus;
+import org.wso2.carbon.identity.x509Certificate.validation.exception.CertificateValidationException;
+import org.wso2.carbon.identity.x509Certificate.validation.model.RevocationStatus;
+import org.wso2.carbon.identity.x509Certificate.validation.util.CertificateValidationUtil;
 
 import java.security.cert.X509Certificate;
 import java.util.List;
+
+import static org.wso2.carbon.identity.x509Certificate.validation.util.X509CertificateUtil.getCRLUrls;
 
 /**
  * This is used to verify a certificate is revoked or not by using the Certificate Revocation List published
@@ -52,7 +54,7 @@ public class CRLValidator implements RevocationValidator {
     public RevocationStatus checkRevocationStatus(X509Certificate peerCert, X509Certificate issuerCert, int retryCount)
             throws CertificateValidationException {
 
-        List<String> crlUrls = CertificateValidationUtil.getCRLUrls(peerCert);
+        List<String> crlUrls = getCRLUrls(peerCert);
         return CertificateValidationUtil.getRevocationStatus(peerCert, retryCount, crlUrls);
     }
 

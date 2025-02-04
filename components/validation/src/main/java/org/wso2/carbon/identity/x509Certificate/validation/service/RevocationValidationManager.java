@@ -18,7 +18,7 @@
 
 package org.wso2.carbon.identity.x509Certificate.validation.service;
 
-import org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationException;
+import org.wso2.carbon.identity.x509Certificate.validation.exception.CertificateValidationException;
 
 import java.security.cert.X509Certificate;
 

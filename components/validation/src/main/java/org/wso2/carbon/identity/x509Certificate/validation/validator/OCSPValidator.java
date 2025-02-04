@@ -18,12 +18,14 @@
 
 package org.wso2.carbon.identity.x509Certificate.validation.validator;
 
-import org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationException;
-import org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil;
-import org.wso2.carbon.identity.x509Certificate.validation.RevocationStatus;
+import org.wso2.carbon.identity.x509Certificate.validation.exception.CertificateValidationException;
+import org.wso2.carbon.identity.x509Certificate.validation.model.RevocationStatus;
+import org.wso2.carbon.identity.x509Certificate.validation.util.CertificateValidationUtil;
 
 import java.security.cert.X509Certificate;
 import java.util.List;
+
+import static org.wso2.carbon.identity.x509Certificate.validation.util.X509CertificateUtil.getAIALocations;
 
 /**
  * This is used to verify a certificate is revoked or not by using the Online Certificate Status Protocol published
@@ -55,7 +57,7 @@ public class OCSPValidator implements RevocationValidator {
         if (issuerCert == null) {
             throw new CertificateValidationException("Issuer Certificate is not available for OCSP validation");
         }
-        List<String> locations = CertificateValidationUtil.getAIALocations(peerCert);
+        List<String> locations = getAIALocations(peerCert);
         return CertificateValidationUtil.getRevocationStatus(peerCert, issuerCert, retryCount, locations);
     }
 

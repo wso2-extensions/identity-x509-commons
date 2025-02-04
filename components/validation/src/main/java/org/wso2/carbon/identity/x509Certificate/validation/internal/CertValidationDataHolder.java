@@ -20,6 +20,8 @@ package org.wso2.carbon.identity.x509Certificate.validation.internal;
 
 import org.wso2.carbon.identity.certificate.management.service.CertificateManagementService;
 import org.wso2.carbon.identity.configuration.mgt.core.ConfigurationManager;
+import org.wso2.carbon.identity.x509Certificate.validation.service.X509AuthenticatorCertificateManager;
+import org.wso2.carbon.identity.x509Certificate.validation.service.X509AuthenticatorValidatorManager;
 import org.wso2.carbon.registry.core.service.RegistryService;
 import org.wso2.carbon.user.core.service.RealmService;
 
@@ -33,6 +35,8 @@ public class CertValidationDataHolder {
     private static CertValidationDataHolder instance = new CertValidationDataHolder();
     private static ConfigurationManager configurationManager;
     private static CertificateManagementService certificateManagementService;
+    private static X509AuthenticatorValidatorManager x509AuthenticatorValidatorManager;
+    private static X509AuthenticatorCertificateManager x509AuthenticatorCertificateManager;
 
     private CertValidationDataHolder() {
     }
@@ -125,5 +129,45 @@ public class CertValidationDataHolder {
     public CertificateManagementService getCertificateManagementService() {
 
         return certificateManagementService;
+    }
+
+    /**
+     * Set X509 Authenticator Validator Manager.
+     *
+     * @param x509AuthenticatorValidatorManager x509 authenticator validator manager
+     */
+    public void setX509AuthenticatorValidatorManager(X509AuthenticatorValidatorManager x509AuthenticatorValidatorManager) {
+
+        this.x509AuthenticatorValidatorManager = x509AuthenticatorValidatorManager;
+    }
+
+    /**
+     * Get X509 Authenticator Validator Manager.
+     *
+     * @return x509 authenticator validator manager
+     */
+    public X509AuthenticatorValidatorManager getX509AuthenticatorValidatorManager() {
+
+        return x509AuthenticatorValidatorManager;
+    }
+
+    /**
+     * Set X509 Authenticator Certificate Manager.
+     *
+     * @param x509AuthenticatorCertificateManager x509 authenticator certificate manager
+     */
+    public void setX509AuthenticatorCertificateManager(X509AuthenticatorCertificateManager x509AuthenticatorCertificateManager) {
+
+        this.x509AuthenticatorCertificateManager = x509AuthenticatorCertificateManager;
+    }
+
+    /**
+     * Get X509 Authenticator Certificate Manager.
+     *
+     * @return x509 authenticator certificate manager
+     */
+    public X509AuthenticatorCertificateManager getX509AuthenticatorCertificateManager() {
+
+        return x509AuthenticatorCertificateManager;
     }
 }

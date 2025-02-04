@@ -20,7 +20,7 @@ package org.wso2.carbon.identity.x509Certificate.validation.internal;
 
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
-import org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil;
+import org.wso2.carbon.identity.x509Certificate.validation.util.CertificateValidationUtil;
 import org.wso2.carbon.stratos.common.beans.TenantInfoBean;
 import org.wso2.carbon.stratos.common.exception.StratosException;
 import org.wso2.carbon.stratos.common.listeners.TenantMgtListener;

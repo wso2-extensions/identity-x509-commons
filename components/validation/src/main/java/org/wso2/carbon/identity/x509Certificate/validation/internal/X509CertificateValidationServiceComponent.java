@@ -30,9 +30,13 @@ import org.osgi.service.component.annotations.ReferencePolicy;
 import org.wso2.carbon.identity.certificate.management.service.CertificateManagementService;
 import org.wso2.carbon.identity.configuration.mgt.core.ConfigurationManager;
 import org.wso2.carbon.identity.core.util.IdentityCoreInitializedEvent;
-import org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil;
 import org.wso2.carbon.identity.x509Certificate.validation.service.RevocationValidationManager;
 import org.wso2.carbon.identity.x509Certificate.validation.service.RevocationValidationManagerImpl;
+import org.wso2.carbon.identity.x509Certificate.validation.service.X509AuthenticatorCertificateManager;
+import org.wso2.carbon.identity.x509Certificate.validation.service.X509AuthenticatorCertificateManagerImpl;
+import org.wso2.carbon.identity.x509Certificate.validation.service.X509AuthenticatorValidatorManager;
+import org.wso2.carbon.identity.x509Certificate.validation.service.X509AuthenticatorValidatorManagerImpl;
+import org.wso2.carbon.identity.x509Certificate.validation.util.CertificateValidationUtil;
 import org.wso2.carbon.identity.x509Certificate.validation.validator.CRLValidator;
 import org.wso2.carbon.identity.x509Certificate.validation.validator.OCSPValidator;
 import org.wso2.carbon.identity.x509Certificate.validation.validator.RevocationValidator;
@@ -52,6 +56,17 @@ public class X509CertificateValidationServiceComponent {
 
         context.getBundleContext().registerService(RevocationValidationManager.class.getName(),
                 new RevocationValidationManagerImpl(), null);
+        X509AuthenticatorValidatorManagerImpl x509AuthenticatorValidatorManager =
+                new X509AuthenticatorValidatorManagerImpl();
+        CertValidationDataHolder.getInstance().setX509AuthenticatorValidatorManager(x509AuthenticatorValidatorManager);
+        context.getBundleContext().registerService(X509AuthenticatorValidatorManager.class.getName(),
+                x509AuthenticatorValidatorManager, null);
+        X509AuthenticatorCertificateManagerImpl x509AuthenticatorCertificateManager =
+                new X509AuthenticatorCertificateManagerImpl();
+        CertValidationDataHolder.getInstance()
+                .setX509AuthenticatorCertificateManager(x509AuthenticatorCertificateManager);
+        context.getBundleContext().registerService(X509AuthenticatorCertificateManager.class.getName(),
+                x509AuthenticatorCertificateManager, null);
         CertificateValidationUtil.addDefaultValidationConfigInRegistry(null);
         CertificateValidationUtil.loadCRLDownloadTimeoutFromConfig();
         context.getBundleContext().registerService(RevocationValidator.class.getName(),

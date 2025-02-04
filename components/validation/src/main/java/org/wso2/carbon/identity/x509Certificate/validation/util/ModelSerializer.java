@@ -17,7 +17,7 @@
  *
  */
 
-package org.wso2.carbon.identity.x509Certificate.validation;
+package org.wso2.carbon.identity.x509Certificate.validation.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
