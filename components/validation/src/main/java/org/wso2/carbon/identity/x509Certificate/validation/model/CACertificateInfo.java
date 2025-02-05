@@ -20,6 +20,9 @@ package org.wso2.carbon.identity.x509Certificate.validation.model;
 
 import java.util.List;
 
+/**
+ * This class represents the Certificate Authority (CA) certificate information.
+ */
 public class CACertificateInfo {
     private String issuerDN;
     private List<String> crlUrls;

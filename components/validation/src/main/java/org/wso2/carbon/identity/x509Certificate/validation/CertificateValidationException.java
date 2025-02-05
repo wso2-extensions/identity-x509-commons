@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package org.wso2.carbon.identity.x509Certificate.validation.exception;
+package org.wso2.carbon.identity.x509Certificate.validation;
 
 public class CertificateValidationException extends Exception {
 

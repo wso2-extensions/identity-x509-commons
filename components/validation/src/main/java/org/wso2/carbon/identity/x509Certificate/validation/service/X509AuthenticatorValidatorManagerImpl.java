@@ -20,7 +20,7 @@ package org.wso2.carbon.identity.x509Certificate.validation.service;
 
 import org.wso2.carbon.identity.configuration.mgt.core.exception.ConfigurationManagementException;
 import org.wso2.carbon.identity.x509Certificate.validation.constant.error.ErrorMessage;
-import org.wso2.carbon.identity.x509Certificate.validation.exception.CertificateValidationException;
+import org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationException;
 import org.wso2.carbon.identity.x509Certificate.validation.exception.X509ConfigurationException;
 import org.wso2.carbon.identity.x509Certificate.validation.model.Validator;
 import org.wso2.carbon.identity.x509Certificate.validation.util.X509ConfigurationExceptionHandler;
@@ -31,7 +31,6 @@ import static org.wso2.carbon.identity.configuration.mgt.core.constant.Configura
 import static org.wso2.carbon.identity.configuration.mgt.core.constant.ConfigurationConstants.ErrorMessages.ERROR_CODE_RESOURCE_ALREADY_EXISTS;
 import static org.wso2.carbon.identity.x509Certificate.validation.util.X509CertificateUtil.getNormalizedName;
 import static org.wso2.carbon.identity.x509Certificate.validation.util.X509CertificateUtil.startTenantFlow;
-import static org.wso2.carbon.identity.x509Certificate.validation.util.X509CertificateUtil.endTenantFlow;
 import static org.wso2.carbon.identity.x509Certificate.validation.util.X509CertificateUtil.buildResourceFromValidator;
 import static org.wso2.carbon.identity.x509Certificate.validation.util.X509CertificateUtil.addResource;
 import static org.wso2.carbon.identity.x509Certificate.validation.util.X509CertificateUtil.getValidatorsFromConfigStore;
@@ -60,8 +59,6 @@ public class X509AuthenticatorValidatorManagerImpl implements X509AuthenticatorV
                 throw X509ConfigurationExceptionHandler.handleServerException
                         (ErrorMessage.ERROR_WHILE_ADDING_VALIDATOR, e);
             }
-        } finally {
-            endTenantFlow();
         }
     }
 
@@ -113,8 +110,6 @@ public class X509AuthenticatorValidatorManagerImpl implements X509AuthenticatorV
         } catch (CertificateValidationException e) {
             throw X509ConfigurationExceptionHandler.handleServerException
                     (ErrorMessage.ERROR_WHILE_UPDATING_VALIDATOR, e);
-        } finally {
-            endTenantFlow();
         }
     }
 }

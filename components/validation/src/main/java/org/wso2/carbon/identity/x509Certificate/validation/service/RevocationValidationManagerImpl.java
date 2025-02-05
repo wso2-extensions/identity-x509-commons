@@ -20,9 +20,9 @@ package org.wso2.carbon.identity.x509Certificate.validation.service;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.wso2.carbon.identity.x509Certificate.validation.exception.CertificateValidationException;
+import org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationException;
 import org.wso2.carbon.identity.x509Certificate.validation.util.CertificateValidationUtil;
-import org.wso2.carbon.identity.x509Certificate.validation.model.RevocationStatus;
+import org.wso2.carbon.identity.x509Certificate.validation.RevocationStatus;
 import org.wso2.carbon.identity.x509Certificate.validation.model.CACertificate;
 import org.wso2.carbon.identity.x509Certificate.validation.validator.RevocationValidator;
 

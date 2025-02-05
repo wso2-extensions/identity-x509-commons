@@ -23,7 +23,7 @@ import org.wso2.carbon.identity.certificate.management.exception.CertificateMgtE
 import org.wso2.carbon.identity.configuration.mgt.core.exception.ConfigurationManagementException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.x509Certificate.validation.constant.error.ErrorMessage;
-import org.wso2.carbon.identity.x509Certificate.validation.exception.CertificateValidationException;
+import org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationException;
 import org.wso2.carbon.identity.x509Certificate.validation.exception.X509ConfigurationException;
 import org.wso2.carbon.identity.x509Certificate.validation.model.CACertificate;
 import org.wso2.carbon.identity.x509Certificate.validation.model.CACertificateInfo;
@@ -36,7 +36,6 @@ import java.util.List;
 
 import static org.wso2.carbon.identity.x509Certificate.validation.util.X509CertificateUtil.getNormalizedName;
 import static org.wso2.carbon.identity.x509Certificate.validation.util.X509CertificateUtil.startTenantFlow;
-import static org.wso2.carbon.identity.x509Certificate.validation.util.X509CertificateUtil.endTenantFlow;
 import static org.wso2.carbon.identity.x509Certificate.validation.util.X509CertificateUtil.addCertificateInConfigurationStore;
 import static org.wso2.carbon.identity.x509Certificate.validation.util.X509CertificateUtil.addCertificateListInConfigurationStore;
 import static org.wso2.carbon.identity.x509Certificate.validation.util.X509CertificateUtil.getCertificateListFromConfigurationStore;
@@ -80,8 +79,6 @@ public class X509AuthenticatorCertificateManagerImpl implements X509Authenticato
         } catch (CertificateValidationException | CertificateException | CertificateMgtException e) {
             throw X509ConfigurationExceptionHandler.handleServerException
                     (ErrorMessage.ERROR_WHILE_ADDING_CA_CERTIFICATE, e);
-        } finally {
-            endTenantFlow();
         }
     }
 
@@ -96,8 +93,6 @@ public class X509AuthenticatorCertificateManagerImpl implements X509Authenticato
                  JsonProcessingException | ConfigurationManagementException e) {
             throw X509ConfigurationExceptionHandler.handleServerException
                     (ErrorMessage.ERROR_WHILE_ADDING_CA_CERTIFICATE, e);
-        } finally {
-            endTenantFlow();
         }
     }
 
@@ -168,8 +163,6 @@ public class X509AuthenticatorCertificateManagerImpl implements X509Authenticato
         } catch (CertificateValidationException | CertificateException | CertificateMgtException e) {
             throw X509ConfigurationExceptionHandler.handleServerException
                     (ErrorMessage.ERROR_WHILE_UPDATING_CA_CERTIFICATE, e);
-        } finally {
-            endTenantFlow();
         }
     }
 
@@ -188,8 +181,6 @@ public class X509AuthenticatorCertificateManagerImpl implements X509Authenticato
         } catch (CertificateValidationException e) {
             throw X509ConfigurationExceptionHandler.handleServerException
                     (ErrorMessage.ERROR_WHILE_DELETING_CA_CERTIFICATE, e);
-        } finally {
-            endTenantFlow();
         }
     }
 }

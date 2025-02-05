@@ -37,6 +37,7 @@ import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.asn1.x509.GeneralNames;
 import org.bouncycastle.asn1.x509.X509ObjectIdentifiers;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.identity.base.IdentityRuntimeException;
 import org.wso2.carbon.identity.certificate.management.constant.CertificateMgtErrors;
 import org.wso2.carbon.identity.certificate.management.exception.CertificateMgtException;
 import org.wso2.carbon.identity.certificate.management.model.Certificate;
@@ -46,7 +47,7 @@ import org.wso2.carbon.identity.configuration.mgt.core.model.Resource;
 import org.wso2.carbon.identity.configuration.mgt.core.model.ResourceFile;
 import org.wso2.carbon.identity.configuration.mgt.core.model.Resources;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
-import org.wso2.carbon.identity.x509Certificate.validation.exception.CertificateValidationException;
+import org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationException;
 import org.wso2.carbon.identity.x509Certificate.validation.internal.CertValidationDataHolder;
 import org.wso2.carbon.identity.x509Certificate.validation.model.CACertificate;
 import org.wso2.carbon.identity.x509Certificate.validation.model.CACertificateInfo;
@@ -75,18 +76,18 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.wso2.carbon.identity.x509Certificate.validation.constant.X509CertificateValidationConstants.CERTS;
-import static org.wso2.carbon.identity.x509Certificate.validation.constant.X509CertificateValidationConstants.CRL_VALIDATOR;
-import static org.wso2.carbon.identity.x509Certificate.validation.constant.X509CertificateValidationConstants.OCSP_VALIDATOR;
-import static org.wso2.carbon.identity.x509Certificate.validation.constant.X509CertificateValidationConstants.VALIDATOR_CONF_ENABLE;
-import static org.wso2.carbon.identity.x509Certificate.validation.constant.X509CertificateValidationConstants.VALIDATOR_CONF_FULL_CHAIN_VALIDATION;
-import static org.wso2.carbon.identity.x509Certificate.validation.constant.X509CertificateValidationConstants.VALIDATOR_CONF_NAME;
-import static org.wso2.carbon.identity.x509Certificate.validation.constant.X509CertificateValidationConstants.VALIDATOR_CONF_PRIORITY;
-import static org.wso2.carbon.identity.x509Certificate.validation.constant.X509CertificateValidationConstants.VALIDATOR_CONF_RETRY_COUNT;
-import static org.wso2.carbon.identity.x509Certificate.validation.constant.X509CertificateValidationConstants.VALIDATOR_RESOURCE_TYPE;
-import static org.wso2.carbon.identity.x509Certificate.validation.constant.X509CertificateValidationConstants.X509_CA_CERT_FILE;
-import static org.wso2.carbon.identity.x509Certificate.validation.constant.X509CertificateValidationConstants.X509_CA_CERT_RESOURCE_TYPE;
-import static org.wso2.carbon.identity.x509Certificate.validation.constant.X509CertificateValidationConstants.X509_CERT_PREFIX;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CERTS;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CRL_VALIDATOR;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.OCSP_VALIDATOR;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_ENABLE;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_FULL_CHAIN_VALIDATION;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_NAME;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_PRIORITY;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_RETRY_COUNT;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_RESOURCE_TYPE;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.X509_CA_CERT_FILE;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.X509_CA_CERT_RESOURCE_TYPE;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.X509_CERT_PREFIX;
 
 /**
  * This class is used to provide utility methods for X509 certificate related operations.
@@ -1041,18 +1042,14 @@ public class X509CertificateUtil {
      */
     public static void startTenantFlow(int tenantId) {
 
-        PrivilegedCarbonContext.startTenantFlow();
-        PrivilegedCarbonContext carbonContext = PrivilegedCarbonContext.getThreadLocalCarbonContext();
-        String tenantDomain = IdentityTenantUtil.getTenantDomain(tenantId);
-        carbonContext.setTenantId(tenantId);
-        carbonContext.setTenantDomain(tenantDomain);
-    }
-
-    /**
-     * End tenant flow.
-     */
-    public static void endTenantFlow() {
-
-        PrivilegedCarbonContext.endTenantFlow();
+        try {
+            PrivilegedCarbonContext.startTenantFlow();
+            PrivilegedCarbonContext carbonContext = PrivilegedCarbonContext.getThreadLocalCarbonContext();
+            String tenantDomain = IdentityTenantUtil.getTenantDomain(tenantId);
+            carbonContext.setTenantId(tenantId);
+            carbonContext.setTenantDomain(tenantDomain);
+        } finally {
+            PrivilegedCarbonContext.endTenantFlow();
+        }
     }
 }

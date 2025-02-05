@@ -21,7 +21,6 @@ package org.wso2.carbon.identity.x509Certificate.validation.util;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.axiom.om.OMElement;
 import org.apache.axiom.om.impl.builder.StAXOMBuilder;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -52,11 +51,11 @@ import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.x509Certificate.validation.cache.CRLCache;
 import org.wso2.carbon.identity.x509Certificate.validation.cache.CRLCacheEntry;
-import org.wso2.carbon.identity.x509Certificate.validation.exception.CertificateValidationException;
+import org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationException;
 import org.wso2.carbon.identity.x509Certificate.validation.exception.X509ConfigurationException;
 import org.wso2.carbon.identity.x509Certificate.validation.internal.CertValidationDataHolder;
 import org.wso2.carbon.identity.x509Certificate.validation.model.CACertificate;
-import org.wso2.carbon.identity.x509Certificate.validation.model.RevocationStatus;
+import org.wso2.carbon.identity.x509Certificate.validation.RevocationStatus;
 import org.wso2.carbon.identity.x509Certificate.validation.model.Validator;
 import org.wso2.carbon.identity.x509Certificate.validation.validator.RevocationValidator;
 import org.wso2.carbon.registry.core.Collection;
@@ -103,8 +102,7 @@ import java.util.Map;
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
 
-import static org.wso2.carbon.identity.x509Certificate.validation.constant.X509CertificateValidationConstants.*;
-import static org.wso2.carbon.identity.x509Certificate.validation.constant.X509CertificateValidationConstants.CRL_VALIDATOR;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.*;
 import static org.wso2.carbon.identity.x509Certificate.validation.util.X509CertificateUtil.decodeCertificate;
 import static org.wso2.carbon.identity.x509Certificate.validation.util.X509CertificateUtil.getNormalizedName;
 import static org.wso2.carbon.registry.core.RegistryConstants.PATH_SEPARATOR;
@@ -489,7 +487,7 @@ public class CertificateValidationUtil {
         return new CACertificate(crlUrls, ocspUrls, x509Certificate);
     }
 
-    public static void addDefaultCACertificateInRegistry(OMElement validatorChildElement,
+    private static void addDefaultCACertificateInRegistry(OMElement validatorChildElement,
                                                           List<X509Certificate> trustedCertificates,
                                                           String tenantDomain) throws
             CertificateValidationException, CertificateException, CertificateMgtException, JsonProcessingException {

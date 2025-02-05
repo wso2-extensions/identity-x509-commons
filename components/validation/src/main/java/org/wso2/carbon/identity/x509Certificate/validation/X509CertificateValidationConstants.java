@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package org.wso2.carbon.identity.x509Certificate.validation.constant;
+package org.wso2.carbon.identity.x509Certificate.validation;
 
 /**
  * This holds the X509 Certificate validation constants.
