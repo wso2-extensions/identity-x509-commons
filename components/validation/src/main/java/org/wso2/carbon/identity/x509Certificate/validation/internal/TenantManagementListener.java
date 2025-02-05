@@ -66,7 +66,8 @@ public class TenantManagementListener implements TenantMgtListener {
         String tenantDomain = IdentityTenantUtil.getTenantDomain(tenantId);
         carbonContext.setTenantId(tenantId);
         carbonContext.setTenantDomain(tenantDomain);
-        CertificateValidationUtil.addDefaultValidationConfigInRegistry(tenantDomain);
+        CertValidationDataHolder.getInstance().getCertificateValidationManagementService()
+                .addDefaultValidationConfigInRegistry(tenantDomain);
         PrivilegedCarbonContext.endTenantFlow();
     }
 
