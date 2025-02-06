@@ -34,81 +34,81 @@ public interface CertificateValidationManagementService {
     /**
      * Get validators.
      *
-     * @param tenantId Tenant Id.
+     * @param tenantDomain Tenant Id.
      * @return List of validators.
      * @throws X509ConfigurationException If an error occurs while getting the validators.
      */
-    List<Validator> getValidators(int tenantId) throws X509ConfigurationException;
+    List<Validator> getValidators(String tenantDomain) throws X509ConfigurationException;
 
     /**
      * Get the validator by name.
      *
      * @param name     Name of the validator.
-     * @param tenantId Tenant Id.
+     * @param tenantDomain Tenant Id.
      * @return Validator.
      * @throws X509ConfigurationException If an error occurs while getting the validator.
      */
-    Validator getValidator(String name, int tenantId) throws X509ConfigurationException;
+    Validator getValidator(String name, String tenantDomain) throws X509ConfigurationException;
 
     /**
      * Update the validator.
      *
      * @param validator Validator.
-     * @param tenantId  Tenant Id.
+     * @param tenantDomain  Tenant Id.
      * @return Updated validator.
      * @throws X509ConfigurationException If an error occurs while updating the validator.
      */
-    Validator updateValidator(Validator validator, int tenantId) throws X509ConfigurationException;
+    Validator updateValidator(Validator validator, String tenantDomain) throws X509ConfigurationException;
 
     /**
      * Get CA Certificates.
      *
-     * @param tenantId Tenant Id.
+     * @param tenantDomain Tenant Id.
      * @return List of CA certificates.
      * @throws X509ConfigurationException If an error occurs while getting the CA certificates.
      */
-    List<CACertificateInfo> getCACertificates(int tenantId) throws X509ConfigurationException;
+    List<CACertificateInfo> getCACertificates(String tenantDomain) throws X509ConfigurationException;
 
     /**
      * Add CA Certificate.
      *
      * @param caCertificate CA Certificate.
-     * @param tenantId      Tenant Id.
+     * @param tenantDomain      Tenant Id.
      * @return Added CA Certificate Info.
      * @throws X509ConfigurationException If an error occurs while adding the CA certificate.
      */
-    CACertificate addCACertificate(X509Certificate caCertificate, int tenantId) throws X509ConfigurationException;
+    CACertificate addCACertificate(X509Certificate caCertificate, String tenantDomain) throws X509ConfigurationException;
 
     /**
      * Get CA Certificate.
      *
      * @param certificateId Certificate Id.
-     * @param tenantId      Tenant Id.
+     * @param tenantDomain      Tenant Id.
      * @return CA Certificate Info.
      * @throws X509ConfigurationException If an error occurs while getting the CA certificate.
      */
-    CACertificateInfo getCaCertificate(String certificateId, int tenantId) throws X509ConfigurationException;
+    CACertificateInfo getCaCertificate(String certificateId, String tenantDomain) throws X509ConfigurationException;
 
     /**
      * Update CA Certificate.
      *
      * @param certificateId Certificate Id.
      * @param certificate   CA Certificate.
-     * @param tenantId      Tenant Id.
+     * @param tenantDomain      Tenant Id.
      * @return Updated CA Certificate Info.
      * @throws X509ConfigurationException If an error occurs while updating the CA certificate.
      */
-    CACertificateInfo updateCACertificate(String certificateId, X509Certificate certificate, int tenantId)
+    CACertificateInfo updateCACertificate(String certificateId, X509Certificate certificate, String tenantDomain)
             throws X509ConfigurationException;
 
     /**
      * Delete CA Certificate.
      *
      * @param certificateId Certificate Id.
-     * @param tenantId      Tenant Id.
+     * @param tenantDomain      Tenant Id.
      * @throws X509ConfigurationException If an error occurs while deleting the CA certificate.
      */
-    void deleteCACertificate(String certificateId, int tenantId) throws X509ConfigurationException;
+    void deleteCACertificate(String certificateId, String tenantDomain) throws X509ConfigurationException;
 
     /**
      * Add default validator configurations to the storage.

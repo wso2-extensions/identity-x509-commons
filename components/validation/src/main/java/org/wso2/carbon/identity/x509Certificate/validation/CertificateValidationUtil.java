@@ -176,7 +176,7 @@ public class CertificateValidationUtil {
 
         try {
             return getRevocationValidators(getValidatorsFromConfigStore(PrivilegedCarbonContext
-                    .getThreadLocalCarbonContext().getTenantId()));
+                    .getThreadLocalCarbonContext().getTenantDomain()));
         } catch (ConfigurationManagementException e) {
             throw new CertificateValidationException("Error while fetching validator configurations.", e);
         }
@@ -1415,16 +1415,16 @@ public class CertificateValidationUtil {
     /**
      * Get validators from the configuration store.
      *
-     * @param tenantId Tenant Id
+     * @param tenantDomain Tenant Domain
      * @return List of Validator
      * @throws ConfigurationManagementException Error when getting resource
      */
-    public static List<Validator> getValidatorsFromConfigStore(int tenantId)
+    public static List<Validator> getValidatorsFromConfigStore(String tenantDomain)
             throws ConfigurationManagementException {
 
         List<Validator> validators = new ArrayList<>();
         Resources resources = CertValidationDataHolder.getInstance().getConfigurationManager()
-                .getResourcesByType(tenantId, VALIDATOR_RESOURCE_TYPE);
+                .getResourcesByType(IdentityTenantUtil.getTenantId(tenantDomain), VALIDATOR_RESOURCE_TYPE);
         resources.getResources().forEach(resource -> validators
                 .add(resourceToValidatorObject(resource)));
         return validators;
@@ -1433,18 +1433,19 @@ public class CertificateValidationUtil {
     /**
      * Get validator from the configuration store by name.
      *
-     * @param tenantId Tenant Id
+     * @param tenantDomain Tenant Domain
      * @param name     Validator name
      * @return Validator
      * @throws CertificateValidationException Error when getting validator
      */
-    public static Validator getValidatorFromConfigStoreByName(int tenantId, String name)
+    public static Validator getValidatorFromConfigStoreByName(String tenantDomain, String name)
             throws CertificateValidationException {
 
         try {
             org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource =
                     CertValidationDataHolder.getInstance().getConfigurationManager()
-                            .getResourceByTenantId(tenantId, VALIDATOR_RESOURCE_TYPE, name);
+                            .getResourceByTenantId(IdentityTenantUtil.getTenantId(tenantDomain),
+                                    VALIDATOR_RESOURCE_TYPE, name);
             if (resource == null) {
                 return null;
             }
@@ -1457,18 +1458,19 @@ public class CertificateValidationUtil {
     /**
      * Update validator in the configuration store.
      *
-     * @param tenantId  Tenant Id
+     * @param tenantDomain  Tenant Domain
      * @param validator Validator
      * @return Validator
      * @throws CertificateValidationException Error when updating validator
      */
-    public static Validator updateValidatorInConfigStore(int tenantId, Validator validator)
+    public static Validator updateValidatorInConfigStore(String tenantDomain, Validator validator)
             throws CertificateValidationException {
 
         try {
             org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource =
                     CertValidationDataHolder.getInstance().getConfigurationManager()
-                            .getResourceByTenantId(tenantId, VALIDATOR_RESOURCE_TYPE, validator.getName());
+                            .getResourceByTenantId(IdentityTenantUtil.getTenantId(tenantDomain),
+                                    VALIDATOR_RESOURCE_TYPE, validator.getName());
             if (resource == null) {
                 return null;
             }
@@ -1485,17 +1487,18 @@ public class CertificateValidationUtil {
     /**
      * Get the certificate list from the configuration store.
      *
-     * @param tenantId Tenant Id
+     * @param tenantDomain Tenant Domain
      * @return List of CACertificateInfo
      * @throws CertificateValidationException Error when getting certificate
      */
-    public static List<CACertificateInfo> getCertificateListFromConfigurationStore(int tenantId)
+    public static List<CACertificateInfo> getCertificateListFromConfigurationStore(String tenantDomain)
             throws CertificateValidationException {
 
         try {
             org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource =
                     CertValidationDataHolder.getInstance().getConfigurationManager()
-                    .getResourceByTenantId(tenantId, X509_CA_CERT_RESOURCE_TYPE, CERTS);
+                    .getResourceByTenantId(IdentityTenantUtil.getTenantId(tenantDomain),
+                            X509_CA_CERT_RESOURCE_TYPE, CERTS);
             if (resource == null) {
                 return null;
             }
@@ -1503,7 +1506,7 @@ public class CertificateValidationUtil {
             if (inputStream == null) {
                 return new ArrayList<>();
             }
-            return parseCertificateList(inputStream, tenantId);
+            return parseCertificateList(inputStream, tenantDomain);
         } catch (IOException | ConfigurationManagementException | CertificateException | CertificateMgtException e) {
             throw new CertificateValidationException("Error while processing the resource", e);
         }
@@ -1523,7 +1526,7 @@ public class CertificateValidationUtil {
                 .getFileById(X509_CA_CERT_RESOURCE_TYPE, CERTS, resourceFile.getId()) : null;
     }
 
-    private static List<CACertificateInfo> parseCertificateList(InputStream inputStream, int tenantId)
+    private static List<CACertificateInfo> parseCertificateList(InputStream inputStream, String tenantDomain)
             throws IOException, CertificateMgtException, CertificateException {
 
         List<CACertificateInfo> certificateList = new ArrayList<>();
@@ -1531,18 +1534,18 @@ public class CertificateValidationUtil {
         IssuerDNMap issuerDNMap = ModelSerializer.deserializeIssuerDNMap(fileContent);
         for (Map.Entry<String, List<CertObject>> entry : issuerDNMap.getIssuerCertMap().entrySet()) {
             for (CertObject certObject : entry.getValue()) {
-                certificateList.add(convertCertObjectToCACertificateInfo(certObject, tenantId));
+                certificateList.add(convertCertObjectToCACertificateInfo(certObject, tenantDomain));
             }
         }
         return certificateList;
     }
 
-    private static CACertificateInfo convertCertObjectToCACertificateInfo(CertObject certObject, int tenantId)
+    private static CACertificateInfo convertCertObjectToCACertificateInfo(CertObject certObject, String tenantDomain)
             throws CertificateMgtException, CertificateException {
 
         Certificate certificate = CertValidationDataHolder.getInstance()
                 .getCertificateManagementService()
-                .getCertificate(certObject.getCertId(), IdentityTenantUtil.getTenantDomain(tenantId));
+                .getCertificate(certObject.getCertId(), tenantDomain);
         X509Certificate x509Certificate = decodeCertificate(certificate.getCertificateContent());
 
         CACertificateInfo caCertificate = new CACertificateInfo();
@@ -1557,17 +1560,17 @@ public class CertificateValidationUtil {
     /**
      * Add a certificate in the configuration store.
      *
-     * @param tenantId Tenant Id
+     * @param tenantDomain Tenant Domain
      * @param certificate X509Certificate
      * @return CertObject
      * @throws CertificateValidationException Error when adding certificate
      * @throws CertificateException Error when encoding certificate
      * @throws CertificateMgtException Error when adding certificate
      */
-    public static CertObject addCertificateInConfigurationStore(int tenantId, X509Certificate certificate)
+    public static CertObject addCertificateInConfigurationStore(String tenantDomain, X509Certificate certificate)
             throws CertificateValidationException, CertificateException, CertificateMgtException {
 
-        return processCertificateInStore(tenantId, certificate, null, false);
+        return processCertificateInStore(tenantDomain, certificate, null, false);
     }
 
     /**
@@ -1575,7 +1578,7 @@ public class CertificateValidationUtil {
      *
      * @param certificateId Certificate Id
      * @param certificate X509Certificate
-     * @param tenantId Tenant Id
+     * @param tenantDomain Tenant Domain
      * @return CertObject
      * @throws CertificateValidationException Error when updating certificate
      * @throws CertificateException Error when encoding certificate
@@ -1583,10 +1586,10 @@ public class CertificateValidationUtil {
      */
     public static CertObject updateCertificateInConfigurationStoreByCertificateId(String certificateId,
                                                                                   X509Certificate certificate,
-                                                                                  int tenantId)
+                                                                                  String tenantDomain)
             throws CertificateValidationException, CertificateException, CertificateMgtException {
 
-        return processCertificateInStore(tenantId, certificate, certificateId, true);
+        return processCertificateInStore(tenantDomain, certificate, certificateId, true);
     }
 
     /**
@@ -1630,17 +1633,19 @@ public class CertificateValidationUtil {
      * Delete a certificate in the configuration store by certificate id.
      *
      * @param certificateId Certificate Id
-     * @param tenantId Tenant Id
+     * @param tenantDomain Tenant Domain
      * @return CertObject
      * @throws CertificateValidationException Error when deleting certificate
      */
-    public static CertObject deleteCertificateInConfigurationStoreByCertificateId(String certificateId, int tenantId)
+    public static CertObject deleteCertificateInConfigurationStoreByCertificateId(String certificateId,
+                                                                                  String tenantDomain)
             throws CertificateValidationException {
 
         try {
             org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource =
                     CertValidationDataHolder.getInstance().getConfigurationManager()
-                    .getResourceByTenantId(tenantId, X509_CA_CERT_RESOURCE_TYPE, CERTS);
+                    .getResourceByTenantId(IdentityTenantUtil.getTenantId(tenantDomain),
+                            X509_CA_CERT_RESOURCE_TYPE, CERTS);
             InputStream inputStream = getResourceFileInputStream(resource);
             if (inputStream == null) {
                 return null;
@@ -1689,14 +1694,15 @@ public class CertificateValidationUtil {
         }
     }
 
-    private static CertObject processCertificateInStore(int tenantId, X509Certificate certificate,
+    private static CertObject processCertificateInStore(String tenantDomain, X509Certificate certificate,
                                                         String certificateId, boolean isUpdate)
             throws CertificateValidationException {
 
         try {
             org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource = CertValidationDataHolder
                     .getInstance().getConfigurationManager()
-                    .getResourceByTenantId(tenantId, X509_CA_CERT_RESOURCE_TYPE, CERTS);
+                    .getResourceByTenantId(IdentityTenantUtil.getTenantId(tenantDomain),
+                            X509_CA_CERT_RESOURCE_TYPE, CERTS);
             InputStream inputStream = getResourceFileInputStream(resource);
             if (inputStream == null) {
                 return null;
@@ -1706,8 +1712,8 @@ public class CertificateValidationUtil {
             String issuerDN = getNormalizedName(certificate.getIssuerDN().getName());
             String serialNumber = getNormalizedName(certificate.getSerialNumber().toString());
 
-            List<String> ocspUrls = getValidationUrls(certificate, tenantId, OCSP_VALIDATOR);
-            List<String> crlUrls = getValidationUrls(certificate, tenantId, CRL_VALIDATOR);
+            List<String> ocspUrls = getValidationUrls(certificate, tenantDomain, OCSP_VALIDATOR);
+            List<String> crlUrls = getValidationUrls(certificate, tenantDomain, CRL_VALIDATOR);
 
             CertObject certObject = new CertObject();
             certObject.setCertId(isUpdate ? certificateId : UUID.randomUUID().toString());
@@ -1723,12 +1729,13 @@ public class CertificateValidationUtil {
         }
     }
 
-    private static List<String> getValidationUrls(X509Certificate certificate, int tenantId, String validatorType)
+    private static List<String> getValidationUrls(X509Certificate certificate, String tenantDomain,
+                                                  String validatorType)
             throws ConfigurationManagementException, CertificateValidationException {
 
         List<String> urls = new ArrayList<>();
         if (!isSelfSignedCert(certificate)) {
-            for (Validator validator : getValidatorsFromConfigStore(tenantId)) {
+            for (Validator validator : getValidatorsFromConfigStore(tenantDomain)) {
                 if (validator.isEnabled() && validatorType.equals(validator.getDisplayName())) {
                     urls = validatorType.equals(OCSP_VALIDATOR) ? getAIALocations(certificate) :
                             getCRLUrls(certificate);
@@ -1774,19 +1781,19 @@ public class CertificateValidationUtil {
     /**
      * Get certificate from the configuration store by certificate id.
      *
-     * @param tenantId Tenant Id
+     * @param tenantDomain Tenant Domain
      * @param certificateId Certificate Id
      * @return CACertificate
      * @throws CertificateValidationException Error when getting certificate
      */
-    public static CACertificate getCertificateFromConfigurationStoreByCertificateId(int tenantId,
+    public static CACertificate getCertificateFromConfigurationStoreByCertificateId(String tenantDomain,
                                                                                     String certificateId)
             throws CertificateValidationException {
 
         try {
             org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource =
                     CertValidationDataHolder.getInstance().getConfigurationManager().getResourceByTenantId
-                            (tenantId, X509_CA_CERT_RESOURCE_TYPE, CERTS);
+                            (IdentityTenantUtil.getTenantId(tenantDomain), X509_CA_CERT_RESOURCE_TYPE, CERTS);
             List<ResourceFile> resourceFiles = resource.getFiles();
             if (resourceFiles == null || resourceFiles.isEmpty()) {
                 log.warn("Resource files are empty for certificates in tenant: " + resource.getTenantDomain());
@@ -1820,8 +1827,7 @@ public class CertificateValidationUtil {
                 if (certObject.isPresent()) {
                     return new CACertificate(certObject.get().getCrlUrls(),
                             certObject.get().getOcspUrls(),
-                            getCACertificateFromCertificateManager(certificateId,
-                                    IdentityTenantUtil.getTenantDomain(tenantId)));
+                            getCACertificateFromCertificateManager(certificateId, tenantDomain));
                 }
             }
             return null;

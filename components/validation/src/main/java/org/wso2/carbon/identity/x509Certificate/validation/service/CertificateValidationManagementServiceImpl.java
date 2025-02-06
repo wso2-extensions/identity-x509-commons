@@ -20,7 +20,6 @@ package org.wso2.carbon.identity.x509Certificate.validation.service;
 
 import org.wso2.carbon.identity.certificate.management.exception.CertificateMgtException;
 import org.wso2.carbon.identity.configuration.mgt.core.exception.ConfigurationManagementException;
-import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationException;
 import org.wso2.carbon.identity.x509Certificate.validation.constant.error.ErrorMessage;
 import org.wso2.carbon.identity.x509Certificate.validation.exception.X509ConfigurationException;
@@ -53,15 +52,14 @@ import static org.wso2.carbon.identity.x509Certificate.validation.CertificateVal
 public class CertificateValidationManagementServiceImpl implements CertificateValidationManagementService {
 
     @Override
-    public List<Validator> getValidators(int tenantId) throws X509ConfigurationException {
+    public List<Validator> getValidators(String tenantDomain) throws X509ConfigurationException {
 
         try {
-            return getValidatorsFromConfigStore(tenantId);
+            return getValidatorsFromConfigStore(tenantDomain);
         } catch (ConfigurationManagementException e) {
             if (ERROR_CODE_RESOURCES_DOES_NOT_EXISTS.getCode().equals(e.getErrorCode())) {
                 throw X509ConfigurationExceptionHandler
-                        .handleClientException(ErrorMessage.ERROR_NO_VALIDATORS_CONFIGURED_ON_TENANT, IdentityTenantUtil
-                                .getTenantDomain(tenantId));
+                        .handleClientException(ErrorMessage.ERROR_NO_VALIDATORS_CONFIGURED_ON_TENANT, tenantDomain);
             } else {
                 throw X509ConfigurationExceptionHandler
                         .handleServerException(ErrorMessage.ERROR_WHILE_RETRIEVING_VALIDATORS, e);
@@ -70,14 +68,13 @@ public class CertificateValidationManagementServiceImpl implements CertificateVa
     }
 
     @Override
-    public Validator getValidator(String name, int tenantId) throws X509ConfigurationException {
+    public Validator getValidator(String name, String tenantDomain) throws X509ConfigurationException {
 
         try {
-            Validator validator = getValidatorFromConfigStoreByName(tenantId, name);
+            Validator validator = getValidatorFromConfigStoreByName(tenantDomain, name);
             if (validator == null) {
                 throw X509ConfigurationExceptionHandler
-                        .handleClientException(ErrorMessage.ERROR_INVALID_VALIDATOR_NAME, name,
-                                IdentityTenantUtil.getTenantDomain(tenantId));
+                        .handleClientException(ErrorMessage.ERROR_INVALID_VALIDATOR_NAME, name, tenantDomain);
             } else {
                 return validator;
             }
@@ -88,14 +85,14 @@ public class CertificateValidationManagementServiceImpl implements CertificateVa
     }
 
     @Override
-    public Validator updateValidator(Validator validator, int tenantId) throws X509ConfigurationException {
+    public Validator updateValidator(Validator validator, String tenantDomain) throws X509ConfigurationException {
 
         try {
-            Validator updatedValidator = updateValidatorInConfigStore(tenantId, validator);
+            Validator updatedValidator = updateValidatorInConfigStore(tenantDomain, validator);
             if (updatedValidator == null) {
                 throw X509ConfigurationExceptionHandler
                         .handleClientException(ErrorMessage.ERROR_INVALID_VALIDATOR_NAME, validator.getName(),
-                                IdentityTenantUtil.getTenantDomain(tenantId));
+                                tenantDomain);
             } else {
                 return updatedValidator;
             }
@@ -106,16 +103,16 @@ public class CertificateValidationManagementServiceImpl implements CertificateVa
     }
 
     @Override
-    public List<CACertificateInfo> getCACertificates(int tenantId) throws X509ConfigurationException {
+    public List<CACertificateInfo> getCACertificates(String tenantDomain) throws X509ConfigurationException {
 
         try {
-            List<CACertificateInfo> caCertificateInfoList = getCertificateListFromConfigurationStore(tenantId);
+            List<CACertificateInfo> caCertificateInfoList = getCertificateListFromConfigurationStore(tenantDomain);
             if (caCertificateInfoList == null || caCertificateInfoList.isEmpty()) {
                 throw X509ConfigurationExceptionHandler
                         .handleClientException(ErrorMessage.ERROR_NO_CA_CERTIFICATES_CONFIGURED_ON_TENANT,
-                                IdentityTenantUtil.getTenantDomain(tenantId));
+                                tenantDomain);
             }
-            return getCertificateListFromConfigurationStore(tenantId);
+            return getCertificateListFromConfigurationStore(tenantDomain);
         } catch (CertificateValidationException e) {
             throw X509ConfigurationExceptionHandler
                     .handleServerException(ErrorMessage.ERROR_WHILE_RETRIEVING_CA_CERTIFICATES, e);
@@ -123,11 +120,11 @@ public class CertificateValidationManagementServiceImpl implements CertificateVa
     }
 
     @Override
-    public CACertificate addCACertificate(X509Certificate caCertificate, int tenantId)
+    public CACertificate addCACertificate(X509Certificate caCertificate, String tenantDomain)
             throws X509ConfigurationException {
 
         try {
-            CertObject certObject = addCertificateInConfigurationStore(tenantId, caCertificate);
+            CertObject certObject = addCertificateInConfigurationStore(tenantDomain, caCertificate);
             return new CACertificate(certObject.getCrlUrls(), certObject.getOcspUrls(), caCertificate);
         } catch (CertificateValidationException | CertificateException | CertificateMgtException e) {
             throw X509ConfigurationExceptionHandler
@@ -136,14 +133,16 @@ public class CertificateValidationManagementServiceImpl implements CertificateVa
     }
 
     @Override
-    public CACertificateInfo getCaCertificate(String certificateId, int tenantId) throws X509ConfigurationException {
+    public CACertificateInfo getCaCertificate(String certificateId, String tenantDomain)
+            throws X509ConfigurationException {
 
         try {
-            CACertificate caCertificate = getCertificateFromConfigurationStoreByCertificateId(tenantId, certificateId);
+            CACertificate caCertificate =
+                    getCertificateFromConfigurationStoreByCertificateId(tenantDomain, certificateId);
             if (caCertificate == null) {
                 throw X509ConfigurationExceptionHandler
                         .handleClientException(ErrorMessage.ERROR_CERTIFICATE_DOES_NOT_EXIST, certificateId,
-                                IdentityTenantUtil.getTenantDomain(tenantId));
+                                tenantDomain);
             } else {
                 CACertificateInfo caCertificateInfo = new CACertificateInfo();
                 caCertificateInfo.setCertId(certificateId);
@@ -162,19 +161,19 @@ public class CertificateValidationManagementServiceImpl implements CertificateVa
     }
 
     @Override
-    public CACertificateInfo updateCACertificate(String certificateId, X509Certificate certificate, int tenantId)
+    public CACertificateInfo updateCACertificate(String certificateId, X509Certificate certificate, String tenantDomain)
             throws X509ConfigurationException {
 
         try {
             CertObject certObject =
-                    updateCertificateInConfigurationStoreByCertificateId(certificateId, certificate, tenantId);
+                    updateCertificateInConfigurationStoreByCertificateId(certificateId, certificate, tenantDomain);
             if (certObject == null) {
                 throw X509ConfigurationExceptionHandler
                         .handleClientException(ErrorMessage.ERROR_CERTIFICATE_DOES_NOT_EXIST, certificateId,
-                                IdentityTenantUtil.getTenantDomain(tenantId));
+                                tenantDomain);
             }
             X509Certificate updatedCertificate = updateCACertificateInCertificateManager(certificateId,
-                    certificate, IdentityTenantUtil.getTenantDomain(tenantId));
+                    certificate, tenantDomain);
             CACertificateInfo caCertificateInfo = new CACertificateInfo();
             caCertificateInfo.setCertId(certificateId);
             caCertificateInfo.setIssuerDN(getNormalizedName(updatedCertificate.getIssuerDN().getName()));
@@ -189,16 +188,16 @@ public class CertificateValidationManagementServiceImpl implements CertificateVa
     }
 
     @Override
-    public void deleteCACertificate(String certificateId, int tenantId) throws X509ConfigurationException {
+    public void deleteCACertificate(String certificateId, String tenantDomain) throws X509ConfigurationException {
 
         try {
-            CertObject certObject = deleteCertificateInConfigurationStoreByCertificateId(certificateId, tenantId);
+            CertObject certObject = deleteCertificateInConfigurationStoreByCertificateId(certificateId, tenantDomain);
             if (certObject != null) {
-                deleteCACertificateFromCertificateManager(certificateId, IdentityTenantUtil.getTenantDomain(tenantId));
+                deleteCACertificateFromCertificateManager(certificateId, tenantDomain);
             } else {
                 throw X509ConfigurationExceptionHandler
                         .handleClientException(ErrorMessage.ERROR_CERTIFICATE_DOES_NOT_EXIST, certificateId,
-                                IdentityTenantUtil.getTenantDomain(tenantId));
+                                tenantDomain);
             }
         } catch (CertificateValidationException e) {
             throw X509ConfigurationExceptionHandler
