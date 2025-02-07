@@ -1630,7 +1630,7 @@ public class CertificateValidationUtil {
      *
      * @param caCertificate X509Certificate
      * @param certObject    CertObject
-     *                      return CACertificateInfo
+     * return CACertificateInfo
      */
     public static CACertificateInfo getCACertificateInfo(X509Certificate caCertificate, CertObject certObject) {
 
