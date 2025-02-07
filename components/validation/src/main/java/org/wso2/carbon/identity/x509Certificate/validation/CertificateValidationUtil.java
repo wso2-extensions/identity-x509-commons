@@ -1490,9 +1490,9 @@ public class CertificateValidationUtil {
     /**
      * Get validators from the configuration store.
      *
-     * @param tenantDomain Tenant Domain
-     * @return List of Validator
-     * @throws ConfigurationManagementException Error when getting resource
+     * @param tenantDomain Tenant Domain.
+     * @return List of Validator.
+     * @throws ConfigurationManagementException Error when getting resource.
      */
     public static List<Validator> getValidatorsFromConfigStore(String tenantDomain)
             throws ConfigurationManagementException {
@@ -1507,10 +1507,10 @@ public class CertificateValidationUtil {
     /**
      * Get validator from the configuration store by name.
      *
-     * @param tenantDomain Tenant Domain
-     * @param name         Validator name
-     * @return Validator
-     * @throws CertificateValidationException Error when getting validator
+     * @param tenantDomain Tenant Domain.
+     * @param name         Validator name.
+     * @return Validator object.
+     * @throws CertificateValidationException Error when getting validator.
      */
     public static Optional<Validator> getValidatorFromConfigStoreByName(String tenantDomain, String name)
             throws CertificateValidationException {
@@ -1532,10 +1532,10 @@ public class CertificateValidationUtil {
     /**
      * Update validator in the configuration store.
      *
-     * @param tenantDomain Tenant Domain
-     * @param validator    Validator
-     * @return Validator
-     * @throws CertificateValidationException Error when updating validator
+     * @param tenantDomain Tenant Domain.
+     * @param validator    Validator.
+     * @return Validator object.
+     * @throws CertificateValidationException Error when updating validator.
      */
     public static Optional<Validator> updateValidatorInConfigStore(String tenantDomain, Validator validator)
             throws CertificateValidationException {
@@ -1561,9 +1561,9 @@ public class CertificateValidationUtil {
     /**
      * Get the certificate list from the configuration store.
      *
-     * @param tenantDomain Tenant Domain
-     * @return List of CACertificateInfo
-     * @throws CertificateValidationException Error when getting certificate
+     * @param tenantDomain Tenant Domain.
+     * @return List of CACertificateInfo.
+     * @throws CertificateValidationException Error when getting certificate.
      */
     public static Optional<List<CACertificateInfo>> getCertificateListFromConfigurationStore(String tenantDomain)
             throws CertificateValidationException {
@@ -1626,11 +1626,11 @@ public class CertificateValidationUtil {
     }
 
     /**
-     * Get CA certificate info from X509Certificate and CertObject.
+     * Get the certificate from the configuration store by serial number.
      *
-     * @param caCertificate X509Certificate
-     * @param certObject    CertObject
-     * return CACertificateInfo
+     * @param caCertificate X509Certificate.
+     * @param certObject    CertObject.
+     * @return CACertificateInfo.
      */
     public static CACertificateInfo getCACertificateInfo(X509Certificate caCertificate, CertObject certObject) {
 
