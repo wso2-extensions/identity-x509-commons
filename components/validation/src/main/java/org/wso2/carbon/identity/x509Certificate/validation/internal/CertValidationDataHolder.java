@@ -88,16 +88,6 @@ public class CertValidationDataHolder {
     }
 
     /**
-     * Set Configuration Manager.
-     *
-     * @param configurationManager configuration manager
-     */
-    public void setConfigurationManager(ConfigurationManager configurationManager) {
-
-        this.configurationManager = configurationManager;
-    }
-
-    /**
      * Get Configuration Manager.
      *
      * @return configuration manager
@@ -108,13 +98,13 @@ public class CertValidationDataHolder {
     }
 
     /**
-     * Set Certificate Management Service.
+     * Set Configuration Manager.
      *
-     * @param service certificate management service
+     * @param configurationManager configuration manager
      */
-    public void setCertificateManagementService(CertificateManagementService service) {
+    public void setConfigurationManager(ConfigurationManager configurationManager) {
 
-        this.certificateManagementService = service;
+        this.configurationManager = configurationManager;
     }
 
     /**
@@ -125,5 +115,15 @@ public class CertValidationDataHolder {
     public CertificateManagementService getCertificateManagementService() {
 
         return certificateManagementService;
+    }
+
+    /**
+     * Set Certificate Management Service.
+     *
+     * @param service certificate management service
+     */
+    public void setCertificateManagementService(CertificateManagementService service) {
+
+        this.certificateManagementService = service;
     }
 }

@@ -31,6 +31,8 @@ import org.wso2.carbon.identity.certificate.management.service.CertificateManage
 import org.wso2.carbon.identity.configuration.mgt.core.ConfigurationManager;
 import org.wso2.carbon.identity.core.util.IdentityCoreInitializedEvent;
 import org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil;
+import org.wso2.carbon.identity.x509Certificate.validation.service.CertificateValidationManagementService;
+import org.wso2.carbon.identity.x509Certificate.validation.service.CertificateValidationManagementServiceImpl;
 import org.wso2.carbon.identity.x509Certificate.validation.service.RevocationValidationManager;
 import org.wso2.carbon.identity.x509Certificate.validation.service.RevocationValidationManagerImpl;
 import org.wso2.carbon.identity.x509Certificate.validation.validator.CRLValidator;
@@ -52,6 +54,10 @@ public class X509CertificateValidationServiceComponent {
 
         context.getBundleContext().registerService(RevocationValidationManager.class.getName(),
                 new RevocationValidationManagerImpl(), null);
+        CertificateValidationManagementService certificateValidationManagementService =
+                new CertificateValidationManagementServiceImpl();
+        context.getBundleContext().registerService(CertificateValidationManagementService.class.getName(),
+                certificateValidationManagementService, null);
         CertificateValidationUtil.addDefaultValidationConfigInRegistry(null);
         CertificateValidationUtil.loadCRLDownloadTimeoutFromConfig();
         context.getBundleContext().registerService(RevocationValidator.class.getName(),
