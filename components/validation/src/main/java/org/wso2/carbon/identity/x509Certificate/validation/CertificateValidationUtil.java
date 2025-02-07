@@ -18,7 +18,82 @@
 
 package org.wso2.carbon.identity.x509Certificate.validation;
 
+import static org.wso2.carbon.identity.configuration.mgt.core.constant.ConfigurationConstants.ErrorMessages.ERROR_CODE_RESOURCE_ALREADY_EXISTS;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CA_CERT_REG_CRL;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CA_CERT_REG_CRL_OCSP_SEPERATOR;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CA_CERT_REG_OCSP;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CA_CERT_REG_PATH;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CERTS;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CERT_VALIDATION_CONF_DIRECTORY;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CERT_VALIDATION_CONF_FILE;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CRL_VALIDATOR;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.HTTP_ACCEPT;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.HTTP_ACCEPT_OCSP;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.HTTP_CONTENT_TYPE;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.HTTP_CONTENT_TYPE_OCSP;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.OCSP_VALIDATOR;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.TRUSTSTORE_CONF;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.TRUSTSTORE_CONF_FILE;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.TRUSTSTORE_CONF_PASSWORD;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.TRUSTSTORE_CONF_TYPE_DEFAULT;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_DISPLAY_NAME;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_ELEMENT_PROPERTY_NAME;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_ENABLE;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_FULL_CHAIN_VALIDATION;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_NAME;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_PRIORITY;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_REG_PATH;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_RETRY_COUNT;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_RESOURCE_TYPE;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.X509_CA_CERT_FILE;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.X509_CA_CERT_RESOURCE_TYPE;
+import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.X509_CERT_PREFIX;
+import static org.wso2.carbon.registry.core.RegistryConstants.PATH_SEPARATOR;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.math.BigInteger;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.Provider;
+import java.security.PublicKey;
+import java.security.Security;
+import java.security.SignatureException;
+import java.security.cert.CRLException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509CRL;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import javax.xml.namespace.QName;
+import javax.xml.stream.XMLStreamException;
 import org.apache.axiom.om.OMElement;
 import org.apache.axiom.om.impl.builder.StAXOMBuilder;
 import org.apache.axiom.om.util.Base64;
@@ -84,84 +159,6 @@ import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.utils.CarbonUtils;
 import org.wso2.carbon.utils.ServerConstants;
 import org.wso2.carbon.utils.security.KeystoreUtils;
-
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.math.BigInteger;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.Provider;
-import java.security.PublicKey;
-import java.security.Security;
-import java.security.SignatureException;
-import java.security.cert.CRLException;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509CRL;
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-
-import javax.xml.namespace.QName;
-import javax.xml.stream.XMLStreamException;
-
-import static org.wso2.carbon.identity.configuration.mgt.core.constant.ConfigurationConstants.ErrorMessages.ERROR_CODE_RESOURCE_ALREADY_EXISTS;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CA_CERT_REG_CRL;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CA_CERT_REG_CRL_OCSP_SEPERATOR;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CA_CERT_REG_OCSP;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CA_CERT_REG_PATH;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CERT_VALIDATION_CONF_DIRECTORY;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CERT_VALIDATION_CONF_FILE;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CRL_VALIDATOR;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.CERTS;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.HTTP_ACCEPT;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.HTTP_ACCEPT_OCSP;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.HTTP_CONTENT_TYPE;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.HTTP_CONTENT_TYPE_OCSP;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.OCSP_VALIDATOR;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.TRUSTSTORE_CONF;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.TRUSTSTORE_CONF_FILE;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.TRUSTSTORE_CONF_PASSWORD;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.TRUSTSTORE_CONF_TYPE_DEFAULT;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_DISPLAY_NAME;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_ELEMENT_PROPERTY_NAME;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_ENABLE;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_FULL_CHAIN_VALIDATION;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_NAME;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_PRIORITY;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_REG_PATH;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_CONF_RETRY_COUNT;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.VALIDATOR_RESOURCE_TYPE;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.X509_CA_CERT_FILE;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.X509_CA_CERT_RESOURCE_TYPE;
-import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.X509_CERT_PREFIX;
-import static org.wso2.carbon.registry.core.RegistryConstants.PATH_SEPARATOR;
 
 /**
  * This class holds the X509 Certificate validation utilities.
@@ -1510,8 +1507,8 @@ public class CertificateValidationUtil {
     /**
      * Get validator from the configuration store by name.
      *
-     * @param tenantDomain  Tenant Domain
-     * @param name          Validator name
+     * @param tenantDomain Tenant Domain
+     * @param name         Validator name
      * @return Validator
      * @throws CertificateValidationException Error when getting validator
      */
@@ -1535,8 +1532,8 @@ public class CertificateValidationUtil {
     /**
      * Update validator in the configuration store.
      *
-     * @param tenantDomain  Tenant Domain
-     * @param validator     Validator
+     * @param tenantDomain Tenant Domain
+     * @param validator    Validator
      * @return Validator
      * @throws CertificateValidationException Error when updating validator
      */
@@ -1574,8 +1571,8 @@ public class CertificateValidationUtil {
         try {
             org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource =
                     CertValidationDataHolder.getInstance().getConfigurationManager()
-                    .getResourceByTenantId(IdentityTenantUtil.getTenantId(tenantDomain),
-                            X509_CA_CERT_RESOURCE_TYPE, CERTS);
+                            .getResourceByTenantId(IdentityTenantUtil.getTenantId(tenantDomain),
+                                    X509_CA_CERT_RESOURCE_TYPE, CERTS);
             if (resource == null) {
                 return Optional.empty();
             }
@@ -1633,9 +1630,10 @@ public class CertificateValidationUtil {
      *
      * @param caCertificate X509Certificate
      * @param certObject    CertObject
-     * return CACertificateInfo
+     *                      return CACertificateInfo
      */
     public static CACertificateInfo getCACertificateInfo(X509Certificate caCertificate, CertObject certObject) {
+
         CACertificateInfo caCertificateInfo = new CACertificateInfo();
         caCertificateInfo.setCertId(certObject.getCertId());
         caCertificateInfo.setIssuerDN(getNormalizedName(caCertificate.getIssuerDN().getName()));
@@ -1648,12 +1646,12 @@ public class CertificateValidationUtil {
     /**
      * Add a certificate in the configuration store.
      *
-     * @param tenantDomain  Tenant Domain
-     * @param certificate   X509Certificate
+     * @param tenantDomain Tenant Domain
+     * @param certificate  X509Certificate
      * @return CertObject
      * @throws CertificateValidationException Error when adding certificate
-     * @throws CertificateException Error when encoding certificate
-     * @throws CertificateMgtException Error when adding certificate
+     * @throws CertificateException           Error when encoding certificate
+     * @throws CertificateMgtException        Error when adding certificate
      */
     public static Optional<CertObject> addCertificateInConfigurationStore(String tenantDomain,
                                                                           X509Certificate certificate)
@@ -1725,12 +1723,12 @@ public class CertificateValidationUtil {
      * @param tenantDomain  Tenant Domain
      * @return CertObject
      * @throws CertificateValidationException Error when updating certificate
-     * @throws CertificateException Error when encoding certificate
-     * @throws CertificateMgtException Error when updating certificate
+     * @throws CertificateException           Error when encoding certificate
+     * @throws CertificateMgtException        Error when updating certificate
      */
     public static Optional<CertObject> updateCertificateInConfigurationStoreByCertificateId(String certificateId,
-                                                                                  X509Certificate certificate,
-                                                                                  String tenantDomain)
+                                                                                            X509Certificate certificate,
+                                                                                            String tenantDomain)
             throws CertificateValidationException {
 
         try {
@@ -1867,14 +1865,14 @@ public class CertificateValidationUtil {
      * @throws CertificateValidationException Error when deleting certificate
      */
     public static Optional<CertObject> deleteCertificateInConfigurationStoreByCertificateId(String certificateId,
-                                                                                  String tenantDomain)
+                                                                                            String tenantDomain)
             throws CertificateValidationException {
 
         try {
             org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource =
                     CertValidationDataHolder.getInstance().getConfigurationManager()
-                    .getResourceByTenantId(IdentityTenantUtil.getTenantId(tenantDomain),
-                            X509_CA_CERT_RESOURCE_TYPE, CERTS);
+                            .getResourceByTenantId(IdentityTenantUtil.getTenantId(tenantDomain),
+                                    X509_CA_CERT_RESOURCE_TYPE, CERTS);
             InputStream inputStream = getResourceFileInputStream(resource);
             if (inputStream == null) {
                 return Optional.empty();
@@ -1963,7 +1961,7 @@ public class CertificateValidationUtil {
      * @throws CertificateValidationException Error when getting certificate
      */
     public static Optional<CACertificate> getCertificateFromConfigurationStoreByCertificateId(String tenantDomain,
-                                                                                    String certificateId)
+                                                                                              String certificateId)
             throws CertificateValidationException {
 
         try {
@@ -2015,7 +2013,7 @@ public class CertificateValidationUtil {
     }
 
     private static X509Certificate getCACertificateFromCertificateManager(String certificateId,
-                                                                         String tenantDomain)
+                                                                          String tenantDomain)
             throws CertificateValidationException {
 
         try {
@@ -2029,9 +2027,8 @@ public class CertificateValidationUtil {
             if (CertificateMgtErrors.ERROR_CERTIFICATE_DOES_NOT_EXIST.getCode().equals(e.getErrorCode())) {
                 throw new CertificateValidationException
                         ("Certificate with the id: " + certificateId + " does not exist.", e);
-            } else {
-                throw new CertificateValidationException("Error when getting certificate from certificate manager.", e);
             }
+            throw new CertificateValidationException("Error when getting certificate from certificate manager.", e);
         } catch (CertificateException e) {
             throw new CertificateValidationException("Error when decoding certificate.", e);
         }

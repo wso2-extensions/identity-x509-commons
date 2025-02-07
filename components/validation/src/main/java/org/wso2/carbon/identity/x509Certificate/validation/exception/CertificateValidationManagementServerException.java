@@ -33,7 +33,8 @@ public class CertificateValidationManagementServerException extends CertificateV
         super(message, cause);
     }
 
-    public CertificateValidationManagementServerException(String message, String description, String errorCode, Throwable cause) {
+    public CertificateValidationManagementServerException(String message, String description, String errorCode,
+                                                          Throwable cause) {
 
         super(message, description, errorCode, cause);
     }

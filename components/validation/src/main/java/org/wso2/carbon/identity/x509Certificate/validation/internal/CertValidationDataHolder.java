@@ -20,7 +20,6 @@ package org.wso2.carbon.identity.x509Certificate.validation.internal;
 
 import org.wso2.carbon.identity.certificate.management.service.CertificateManagementService;
 import org.wso2.carbon.identity.configuration.mgt.core.ConfigurationManager;
-import org.wso2.carbon.identity.x509Certificate.validation.service.CertificateValidationManagementService;
 import org.wso2.carbon.registry.core.service.RegistryService;
 import org.wso2.carbon.user.core.service.RealmService;
 
@@ -89,16 +88,6 @@ public class CertValidationDataHolder {
     }
 
     /**
-     * Set Configuration Manager.
-     *
-     * @param configurationManager configuration manager
-     */
-    public void setConfigurationManager(ConfigurationManager configurationManager) {
-
-        this.configurationManager = configurationManager;
-    }
-
-    /**
      * Get Configuration Manager.
      *
      * @return configuration manager
@@ -109,13 +98,13 @@ public class CertValidationDataHolder {
     }
 
     /**
-     * Set Certificate Management Service.
+     * Set Configuration Manager.
      *
-     * @param service certificate management service
+     * @param configurationManager configuration manager
      */
-    public void setCertificateManagementService(CertificateManagementService service) {
+    public void setConfigurationManager(ConfigurationManager configurationManager) {
 
-        this.certificateManagementService = service;
+        this.configurationManager = configurationManager;
     }
 
     /**
@@ -126,5 +115,15 @@ public class CertValidationDataHolder {
     public CertificateManagementService getCertificateManagementService() {
 
         return certificateManagementService;
+    }
+
+    /**
+     * Set Certificate Management Service.
+     *
+     * @param service certificate management service
+     */
+    public void setCertificateManagementService(CertificateManagementService service) {
+
+        this.certificateManagementService = service;
     }
 }

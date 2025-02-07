@@ -43,7 +43,8 @@ public class CertificateValidationManagementException extends Exception {
         this.description = description;
     }
 
-    public CertificateValidationManagementException(String message, String description, String errorCode, Throwable cause) {
+    public CertificateValidationManagementException(String message, String description, String errorCode,
+                                                    Throwable cause) {
 
         super(message, cause);
         this.errorCode = errorCode;

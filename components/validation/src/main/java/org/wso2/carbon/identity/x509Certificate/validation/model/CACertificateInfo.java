@@ -32,6 +32,7 @@ public class CACertificateInfo {
 
     public CACertificateInfo(String issuerDN, List<String> crlUrls, List<String> ocspUrls, String certId,
                              String serialNumber) {
+
         this.issuerDN = issuerDN;
         this.crlUrls = crlUrls;
         this.ocspUrls = ocspUrls;
@@ -40,50 +41,62 @@ public class CACertificateInfo {
     }
 
     public CACertificateInfo() {
+
     }
 
     public String getIssuerDN() {
+
         return issuerDN;
     }
 
     public void setIssuerDN(String issuerDN) {
+
         this.issuerDN = issuerDN;
     }
 
     public List<String> getCrlUrls() {
+
         return crlUrls;
     }
 
     public void setCrlUrls(List<String> crlUrls) {
+
         this.crlUrls = crlUrls;
     }
 
     public List<String> getOcspUrls() {
+
         return ocspUrls;
     }
 
     public void setOcspUrls(List<String> ocspUrls) {
+
         this.ocspUrls = ocspUrls;
     }
 
     public String getCertId() {
+
         return certId;
     }
 
     public void setCertId(String certId) {
+
         this.certId = certId;
     }
 
     public String getSerialNumber() {
+
         return serialNumber;
     }
 
     public void setSerialNumber(String serialNumber) {
+
         this.serialNumber = serialNumber;
     }
 
     @Override
     public String toString() {
+
         return "CertificateInfo{" +
                 "issuerDN='" + issuerDN + '\'' +
                 ", crlUrls=" + crlUrls +

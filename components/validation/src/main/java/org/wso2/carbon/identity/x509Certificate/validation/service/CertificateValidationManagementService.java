@@ -18,11 +18,10 @@
 
 package org.wso2.carbon.identity.x509Certificate.validation.service;
 
+import java.util.List;
 import org.wso2.carbon.identity.x509Certificate.validation.exception.CertificateValidationManagementException;
 import org.wso2.carbon.identity.x509Certificate.validation.model.CACertificateInfo;
 import org.wso2.carbon.identity.x509Certificate.validation.model.Validator;
-
-import java.util.List;
 
 /**
  * This interface supports the x509 authenticator validator manager.
@@ -71,7 +70,7 @@ public interface CertificateValidationManagementService {
      * Add CA Certificate.
      *
      * @param encodedCertificate Base64 Encoded CA Certificate.
-     * @param tenantDomain  Tenant Id.
+     * @param tenantDomain       Tenant Id.
      * @return Added CA Certificate Info.
      * @throws CertificateValidationManagementException If an error occurs while adding the CA certificate.
      */
@@ -92,9 +91,9 @@ public interface CertificateValidationManagementService {
     /**
      * Update CA Certificate.
      *
-     * @param certificateId Certificate Id.
+     * @param certificateId      Certificate Id.
      * @param encodedCertificate Base64 Encoded CA Certificate.
-     * @param tenantDomain  Tenant Id.
+     * @param tenantDomain       Tenant Id.
      * @return Updated CA Certificate Info.
      * @throws CertificateValidationManagementException If an error occurs while updating the CA certificate.
      */

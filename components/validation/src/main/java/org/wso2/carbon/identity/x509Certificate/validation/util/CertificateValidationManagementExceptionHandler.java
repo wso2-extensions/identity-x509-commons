@@ -26,19 +26,20 @@ import org.wso2.carbon.identity.x509Certificate.validation.exception.Certificate
 /**
  * Utility class for X509 Configuration.
  */
-public class X509ConfigurationExceptionHandler {
+public class CertificateValidationManagementExceptionHandler {
 
-    private X509ConfigurationExceptionHandler() {
+    private CertificateValidationManagementExceptionHandler() {
     }
 
     /**
-     * Handle X509 Configuration client exceptions.
+     * Handle Certificate Validation Management client exceptions.
      *
      * @param error Error message.
      * @param data  Data.
      * @return CertificateValidationManagementClientException.
      */
-    public static CertificateValidationManagementClientException handleClientException(ErrorMessage error, String... data) {
+    public static CertificateValidationManagementClientException handleClientException
+    (ErrorMessage error, String... data) {
 
         String description = error.getDescription();
         if (ArrayUtils.isNotEmpty(data)) {
@@ -49,15 +50,15 @@ public class X509ConfigurationExceptionHandler {
     }
 
     /**
-     * Handle X509 Configuration server exceptions.
+     * Handle Certificate Validation Management server exceptions.
      *
      * @param error Error message.
      * @param e     Throwable.
      * @param data  Data.
      * @return CertificateValidationManagementServerException.
      */
-    public static CertificateValidationManagementServerException handleServerException
-    (ErrorMessage error, Throwable e, String... data) {
+    public static CertificateValidationManagementServerException handleServerException(ErrorMessage error,
+                                                                                       Throwable e, String... data) {
 
         String description = error.getDescription();
         if (ArrayUtils.isNotEmpty(data)) {

@@ -18,6 +18,25 @@
 
 package org.wso2.carbon.identity.x509Certificate.validation.service;
 
+import static org.wso2.carbon.identity.configuration.mgt.core.constant.ConfigurationConstants.ErrorMessages.ERROR_CODE_RESOURCES_DOES_NOT_EXISTS;
+import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.addCertificateInConfigurationStore;
+import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.decodeCertificate;
+import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.deleteCACertificateFromCertificateManager;
+import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.deleteCertificateInConfigurationStoreByCertificateId;
+import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.getCACertificateInfo;
+import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.getCertificateFromConfigurationStoreByCertificateId;
+import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.getCertificateListFromConfigurationStore;
+import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.getNormalizedName;
+import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.getValidatorFromConfigStoreByName;
+import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.getValidatorsFromConfigStore;
+import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.updateCACertificateInCertificateManager;
+import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.updateCertificateInConfigurationStoreByCertificateId;
+import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.updateValidatorInConfigStore;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import org.wso2.carbon.identity.certificate.management.exception.CertificateMgtException;
 import org.wso2.carbon.identity.configuration.mgt.core.exception.ConfigurationManagementException;
 import org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationException;
@@ -27,28 +46,7 @@ import org.wso2.carbon.identity.x509Certificate.validation.model.CACertificate;
 import org.wso2.carbon.identity.x509Certificate.validation.model.CACertificateInfo;
 import org.wso2.carbon.identity.x509Certificate.validation.model.CertObject;
 import org.wso2.carbon.identity.x509Certificate.validation.model.Validator;
-import org.wso2.carbon.identity.x509Certificate.validation.util.X509ConfigurationExceptionHandler;
-
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
-import static org.wso2.carbon.identity.configuration.mgt.core.constant.ConfigurationConstants.ErrorMessages.ERROR_CODE_RESOURCES_DOES_NOT_EXISTS;
-import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.decodeCertificate;
-import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.getNormalizedName;
-import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.getCACertificateInfo;
-import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.updateCACertificateInCertificateManager;
-import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.addCertificateInConfigurationStore;
-import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.deleteCACertificateFromCertificateManager;
-import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.deleteCertificateInConfigurationStoreByCertificateId;
-import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.getValidatorsFromConfigStore;
-import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.getValidatorFromConfigStoreByName;
-import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.updateValidatorInConfigStore;
-import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.getCertificateListFromConfigurationStore;
-import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.getCertificateFromConfigurationStoreByCertificateId;
-import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.updateCertificateInConfigurationStoreByCertificateId;
+import org.wso2.carbon.identity.x509Certificate.validation.util.CertificateValidationManagementExceptionHandler;
 
 /**
  * This implementation handles the x509 authenticator validator manager implementation.
@@ -64,7 +62,7 @@ public class CertificateValidationManagementServiceImpl implements CertificateVa
             if (ERROR_CODE_RESOURCES_DOES_NOT_EXISTS.getCode().equals(e.getErrorCode())) {
                 return new ArrayList<>();
             }
-            throw X509ConfigurationExceptionHandler
+            throw CertificateValidationManagementExceptionHandler
                     .handleServerException(ErrorMessage.ERROR_WHILE_RETRIEVING_VALIDATORS, e);
         }
     }
@@ -77,12 +75,12 @@ public class CertificateValidationManagementServiceImpl implements CertificateVa
             Optional<Validator> validator = getValidatorFromConfigStoreByName(tenantDomain, name);
 
             if (!validator.isPresent()) {
-                throw X509ConfigurationExceptionHandler
+                throw CertificateValidationManagementExceptionHandler
                         .handleClientException(ErrorMessage.ERROR_INVALID_VALIDATOR_NAME, name, tenantDomain);
             }
             return validator.get();
         } catch (CertificateValidationException e) {
-            throw X509ConfigurationExceptionHandler
+            throw CertificateValidationManagementExceptionHandler
                     .handleServerException(ErrorMessage.ERROR_WHILE_RETRIEVING_VALIDATOR_BY_NAME, e);
         }
     }
@@ -94,13 +92,13 @@ public class CertificateValidationManagementServiceImpl implements CertificateVa
         try {
             Optional<Validator> updatedValidator = updateValidatorInConfigStore(tenantDomain, validator);
             if (!updatedValidator.isPresent()) {
-                throw X509ConfigurationExceptionHandler
+                throw CertificateValidationManagementExceptionHandler
                         .handleClientException(ErrorMessage.ERROR_INVALID_VALIDATOR_NAME, validator.getName(),
                                 tenantDomain);
             }
             return updatedValidator.get();
         } catch (CertificateValidationException e) {
-            throw X509ConfigurationExceptionHandler
+            throw CertificateValidationManagementExceptionHandler
                     .handleServerException(ErrorMessage.ERROR_WHILE_UPDATING_VALIDATOR, e);
         }
     }
@@ -110,10 +108,11 @@ public class CertificateValidationManagementServiceImpl implements CertificateVa
             throws CertificateValidationManagementException {
 
         try {
-            Optional<List<CACertificateInfo>> caCertificateInfoList = getCertificateListFromConfigurationStore(tenantDomain);
+            Optional<List<CACertificateInfo>> caCertificateInfoList =
+                    getCertificateListFromConfigurationStore(tenantDomain);
             return caCertificateInfoList.orElseGet(ArrayList::new);
         } catch (CertificateValidationException e) {
-            throw X509ConfigurationExceptionHandler
+            throw CertificateValidationManagementExceptionHandler
                     .handleServerException(ErrorMessage.ERROR_WHILE_RETRIEVING_CA_CERTIFICATES, e);
         }
     }
@@ -126,13 +125,13 @@ public class CertificateValidationManagementServiceImpl implements CertificateVa
             X509Certificate caCertificate = decodeCertificate(encodedCertificate);
             Optional<CertObject> certObject = addCertificateInConfigurationStore(tenantDomain, caCertificate);
             if (!certObject.isPresent()) {
-                throw X509ConfigurationExceptionHandler
+                throw CertificateValidationManagementExceptionHandler
                         .handleClientException(ErrorMessage.ERROR_NO_CA_CERTIFICATES_CONFIGURED_ON_TENANT,
                                 tenantDomain);
             }
             return getCACertificateInfo(caCertificate, certObject.get());
         } catch (CertificateValidationException | CertificateException | CertificateMgtException e) {
-            throw X509ConfigurationExceptionHandler
+            throw CertificateValidationManagementExceptionHandler
                     .handleServerException(ErrorMessage.ERROR_WHILE_ADDING_CA_CERTIFICATE, e);
         }
     }
@@ -145,7 +144,7 @@ public class CertificateValidationManagementServiceImpl implements CertificateVa
             Optional<CACertificate> caCertificate =
                     getCertificateFromConfigurationStoreByCertificateId(tenantDomain, certificateId);
             if (!caCertificate.isPresent()) {
-                throw X509ConfigurationExceptionHandler
+                throw CertificateValidationManagementExceptionHandler
                         .handleClientException(ErrorMessage.ERROR_CERTIFICATE_DOES_NOT_EXIST, certificateId,
                                 tenantDomain);
             }
@@ -159,7 +158,7 @@ public class CertificateValidationManagementServiceImpl implements CertificateVa
             caCertificateInfo.setOcspUrls(caCertificate.get().getOcspUrl());
             return caCertificateInfo;
         } catch (CertificateValidationException e) {
-            throw X509ConfigurationExceptionHandler
+            throw CertificateValidationManagementExceptionHandler
                     .handleServerException(ErrorMessage.ERROR_WHILE_RETRIEVING_CA_CERTIFICATE_BY_ID, e);
         }
     }
@@ -173,7 +172,7 @@ public class CertificateValidationManagementServiceImpl implements CertificateVa
             Optional<CertObject> certObject =
                     updateCertificateInConfigurationStoreByCertificateId(certificateId, certificate, tenantDomain);
             if (!certObject.isPresent()) {
-                throw X509ConfigurationExceptionHandler
+                throw CertificateValidationManagementExceptionHandler
                         .handleClientException(ErrorMessage.ERROR_CERTIFICATE_DOES_NOT_EXIST, certificateId,
                                 tenantDomain);
             }
@@ -187,7 +186,7 @@ public class CertificateValidationManagementServiceImpl implements CertificateVa
             caCertificateInfo.setOcspUrls(certObject.get().getOcspUrls());
             return caCertificateInfo;
         } catch (CertificateValidationException | CertificateException e) {
-            throw X509ConfigurationExceptionHandler
+            throw CertificateValidationManagementExceptionHandler
                     .handleServerException(ErrorMessage.ERROR_WHILE_UPDATING_CA_CERTIFICATE, e);
         }
     }
@@ -197,15 +196,17 @@ public class CertificateValidationManagementServiceImpl implements CertificateVa
             throws CertificateValidationManagementException {
 
         try {
-            Optional<CertObject> certObject = deleteCertificateInConfigurationStoreByCertificateId(certificateId, tenantDomain);
+            Optional<CertObject> certObject =
+                    deleteCertificateInConfigurationStoreByCertificateId(certificateId, tenantDomain);
             if (certObject.isPresent()) {
                 deleteCACertificateFromCertificateManager(certificateId, tenantDomain);
+            } else {
+                throw CertificateValidationManagementExceptionHandler
+                        .handleClientException(ErrorMessage.ERROR_CERTIFICATE_DOES_NOT_EXIST, certificateId,
+                                tenantDomain);
             }
-            throw X509ConfigurationExceptionHandler
-                    .handleClientException(ErrorMessage.ERROR_CERTIFICATE_DOES_NOT_EXIST, certificateId,
-                            tenantDomain);
         } catch (CertificateValidationException e) {
-            throw X509ConfigurationExceptionHandler
+            throw CertificateValidationManagementExceptionHandler
                     .handleServerException(ErrorMessage.ERROR_WHILE_DELETING_CA_CERTIFICATE, e);
         }
     }
