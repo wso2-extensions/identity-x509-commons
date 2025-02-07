@@ -58,12 +58,8 @@ public class X509CertificateValidationServiceComponent {
                 new CertificateValidationManagementServiceImpl();
         context.getBundleContext().registerService(CertificateValidationManagementService.class.getName(),
                 certificateValidationManagementService, null);
-        CertValidationDataHolder.getInstance().setCertificateValidationManagementService(
-                certificateValidationManagementService);
-        CertValidationDataHolder.getInstance().getCertificateValidationManagementService()
-                .addDefaultValidationConfigInRegistry(null);
-        CertValidationDataHolder.getInstance().getCertificateValidationManagementService()
-                .loadCRLDownloadTimeoutFromConfig();
+        CertificateValidationUtil.addDefaultValidationConfigInRegistry(null);
+        CertificateValidationUtil.loadCRLDownloadTimeoutFromConfig();
         context.getBundleContext().registerService(RevocationValidator.class.getName(),
                 new CRLValidator(), null);
         context.getBundleContext().registerService(RevocationValidator.class.getName(),

@@ -20,8 +20,8 @@ package org.wso2.carbon.identity.x509Certificate.validation.util;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.wso2.carbon.identity.x509Certificate.validation.constant.error.ErrorMessage;
-import org.wso2.carbon.identity.x509Certificate.validation.exception.X509ConfigurationClientException;
-import org.wso2.carbon.identity.x509Certificate.validation.exception.X509ConfigurationServerException;
+import org.wso2.carbon.identity.x509Certificate.validation.exception.CertificateValidationManagementClientException;
+import org.wso2.carbon.identity.x509Certificate.validation.exception.CertificateValidationManagementServerException;
 
 /**
  * Utility class for X509 Configuration.
@@ -36,16 +36,16 @@ public class X509ConfigurationExceptionHandler {
      *
      * @param error Error message.
      * @param data  Data.
-     * @return X509ConfigurationClientException.
+     * @return CertificateValidationManagementClientException.
      */
-    public static X509ConfigurationClientException handleClientException(ErrorMessage error, String... data) {
+    public static CertificateValidationManagementClientException handleClientException(ErrorMessage error, String... data) {
 
         String description = error.getDescription();
         if (ArrayUtils.isNotEmpty(data)) {
             description = String.format(description, data);
         }
 
-        return new X509ConfigurationClientException(error.getMessage(), description, error.getCode());
+        return new CertificateValidationManagementClientException(error.getMessage(), description, error.getCode());
     }
 
     /**
@@ -54,9 +54,9 @@ public class X509ConfigurationExceptionHandler {
      * @param error Error message.
      * @param e     Throwable.
      * @param data  Data.
-     * @return X509ConfigurationServerException.
+     * @return CertificateValidationManagementServerException.
      */
-    public static X509ConfigurationServerException handleServerException
+    public static CertificateValidationManagementServerException handleServerException
     (ErrorMessage error, Throwable e, String... data) {
 
         String description = error.getDescription();
@@ -64,6 +64,6 @@ public class X509ConfigurationExceptionHandler {
             description = String.format(description, data);
         }
 
-        return new X509ConfigurationServerException(error.getMessage(), description, error.getCode(), e);
+        return new CertificateValidationManagementServerException(error.getMessage(), description, error.getCode(), e);
     }
 }

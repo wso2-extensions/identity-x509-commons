@@ -34,7 +34,6 @@ public class CertValidationDataHolder {
     private static CertValidationDataHolder instance = new CertValidationDataHolder();
     private static ConfigurationManager configurationManager;
     private static CertificateManagementService certificateManagementService;
-    private static CertificateValidationManagementService certificateValidationManagementService;
 
     private CertValidationDataHolder() {
     }
@@ -127,25 +126,5 @@ public class CertValidationDataHolder {
     public CertificateManagementService getCertificateManagementService() {
 
         return certificateManagementService;
-    }
-
-    /**
-     * Set Certificate Validation Management Service.
-     *
-     * @param service certificate validation management service
-     */
-    public void setCertificateValidationManagementService(CertificateValidationManagementService service) {
-
-        this.certificateValidationManagementService = service;
-    }
-
-    /**
-     * Get Certificate Validation Management Service.
-     *
-     * @return certificate validation management service
-     */
-    public CertificateValidationManagementService getCertificateValidationManagementService() {
-
-        return certificateValidationManagementService;
     }
 }

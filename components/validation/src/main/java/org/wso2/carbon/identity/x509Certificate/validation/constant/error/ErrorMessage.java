@@ -28,7 +28,7 @@ public enum ErrorMessage {
             "Invalid validator name %s in the tenant %s."),
     ERROR_NO_VALIDATORS_CONFIGURED_ON_TENANT("60002", "Unable to perform the operation.",
             "No validator is configured on the given tenant %s."),
-    ERROR_NO_CA_CERTIFICATES_CONFIGURED_ON_TENANT("60003", "Unable to perform the operation.",
+    ERROR_NO_CA_CERTIFICATES_CONFIGURED_ON_TENANT("60003", "CA Certificate is not found.",
             "No CA Certificate is configured on the given tenant %s."),
     ERROR_CERTIFICATE_DOES_NOT_EXIST("60004", "Unable to perform the operation.", "Certificate " +
             "with the id: %s does not exist in tenant %s."),

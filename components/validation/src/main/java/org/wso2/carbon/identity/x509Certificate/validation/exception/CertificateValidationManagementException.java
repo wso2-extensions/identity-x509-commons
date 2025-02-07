@@ -21,29 +21,29 @@ package org.wso2.carbon.identity.x509Certificate.validation.exception;
 /**
  * X509 Configuration exception.
  */
-public class X509ConfigurationException extends Exception {
+public class CertificateValidationManagementException extends Exception {
 
     private String errorCode;
     private String description;
 
-    public X509ConfigurationException(String message) {
+    public CertificateValidationManagementException(String message) {
 
         super(message);
     }
 
-    public X509ConfigurationException(String message, Throwable cause) {
+    public CertificateValidationManagementException(String message, Throwable cause) {
 
         super(message, cause);
     }
 
-    public X509ConfigurationException(String message, String description, String errorCode) {
+    public CertificateValidationManagementException(String message, String description, String errorCode) {
 
         super(message);
         this.errorCode = errorCode;
         this.description = description;
     }
 
-    public X509ConfigurationException(String message, String description, String errorCode, Throwable cause) {
+    public CertificateValidationManagementException(String message, String description, String errorCode, Throwable cause) {
 
         super(message, cause);
         this.errorCode = errorCode;

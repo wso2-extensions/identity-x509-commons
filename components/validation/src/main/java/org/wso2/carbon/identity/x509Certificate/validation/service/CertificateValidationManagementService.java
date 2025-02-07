@@ -18,12 +18,10 @@
 
 package org.wso2.carbon.identity.x509Certificate.validation.service;
 
-import org.wso2.carbon.identity.x509Certificate.validation.exception.X509ConfigurationException;
-import org.wso2.carbon.identity.x509Certificate.validation.model.CACertificate;
+import org.wso2.carbon.identity.x509Certificate.validation.exception.CertificateValidationManagementException;
 import org.wso2.carbon.identity.x509Certificate.validation.model.CACertificateInfo;
 import org.wso2.carbon.identity.x509Certificate.validation.model.Validator;
 
-import java.security.cert.X509Certificate;
 import java.util.List;
 
 /**
@@ -36,89 +34,79 @@ public interface CertificateValidationManagementService {
      *
      * @param tenantDomain Tenant Id.
      * @return List of validators.
-     * @throws X509ConfigurationException If an error occurs while getting the validators.
+     * @throws CertificateValidationManagementException If an error occurs while getting the validators.
      */
-    List<Validator> getValidators(String tenantDomain) throws X509ConfigurationException;
+    List<Validator> getValidators(String tenantDomain) throws CertificateValidationManagementException;
 
     /**
      * Get the validator by name.
      *
-     * @param name     Name of the validator.
+     * @param name         Name of the validator.
      * @param tenantDomain Tenant Id.
      * @return Validator.
-     * @throws X509ConfigurationException If an error occurs while getting the validator.
+     * @throws CertificateValidationManagementException If an error occurs while getting the validator.
      */
-    Validator getValidator(String name, String tenantDomain) throws X509ConfigurationException;
+    Validator getValidator(String name, String tenantDomain) throws CertificateValidationManagementException;
 
     /**
      * Update the validator.
      *
-     * @param validator Validator.
-     * @param tenantDomain  Tenant Id.
+     * @param validator    Validator.
+     * @param tenantDomain Tenant Id.
      * @return Updated validator.
-     * @throws X509ConfigurationException If an error occurs while updating the validator.
+     * @throws CertificateValidationManagementException If an error occurs while updating the validator.
      */
-    Validator updateValidator(Validator validator, String tenantDomain) throws X509ConfigurationException;
+    Validator updateValidator(Validator validator, String tenantDomain) throws CertificateValidationManagementException;
 
     /**
      * Get CA Certificates.
      *
      * @param tenantDomain Tenant Id.
      * @return List of CA certificates.
-     * @throws X509ConfigurationException If an error occurs while getting the CA certificates.
+     * @throws CertificateValidationManagementException If an error occurs while getting the CA certificates.
      */
-    List<CACertificateInfo> getCACertificates(String tenantDomain) throws X509ConfigurationException;
+    List<CACertificateInfo> getCACertificates(String tenantDomain) throws CertificateValidationManagementException;
 
     /**
      * Add CA Certificate.
      *
-     * @param caCertificate CA Certificate.
-     * @param tenantDomain      Tenant Id.
+     * @param encodedCertificate Base64 Encoded CA Certificate.
+     * @param tenantDomain  Tenant Id.
      * @return Added CA Certificate Info.
-     * @throws X509ConfigurationException If an error occurs while adding the CA certificate.
+     * @throws CertificateValidationManagementException If an error occurs while adding the CA certificate.
      */
-    CACertificate addCACertificate(X509Certificate caCertificate, String tenantDomain) throws X509ConfigurationException;
+    CACertificateInfo addCACertificate(String encodedCertificate, String tenantDomain)
+            throws CertificateValidationManagementException;
 
     /**
      * Get CA Certificate.
      *
      * @param certificateId Certificate Id.
-     * @param tenantDomain      Tenant Id.
+     * @param tenantDomain  Tenant Id.
      * @return CA Certificate Info.
-     * @throws X509ConfigurationException If an error occurs while getting the CA certificate.
+     * @throws CertificateValidationManagementException If an error occurs while getting the CA certificate.
      */
-    CACertificateInfo getCaCertificate(String certificateId, String tenantDomain) throws X509ConfigurationException;
+    CACertificateInfo getCACertificate(String certificateId, String tenantDomain)
+            throws CertificateValidationManagementException;
 
     /**
      * Update CA Certificate.
      *
      * @param certificateId Certificate Id.
-     * @param certificate   CA Certificate.
-     * @param tenantDomain      Tenant Id.
+     * @param encodedCertificate Base64 Encoded CA Certificate.
+     * @param tenantDomain  Tenant Id.
      * @return Updated CA Certificate Info.
-     * @throws X509ConfigurationException If an error occurs while updating the CA certificate.
+     * @throws CertificateValidationManagementException If an error occurs while updating the CA certificate.
      */
-    CACertificateInfo updateCACertificate(String certificateId, X509Certificate certificate, String tenantDomain)
-            throws X509ConfigurationException;
+    CACertificateInfo updateCACertificate(String certificateId, String encodedCertificate, String tenantDomain)
+            throws CertificateValidationManagementException;
 
     /**
      * Delete CA Certificate.
      *
      * @param certificateId Certificate Id.
-     * @param tenantDomain      Tenant Id.
-     * @throws X509ConfigurationException If an error occurs while deleting the CA certificate.
+     * @param tenantDomain  Tenant Id.
+     * @throws CertificateValidationManagementException If an error occurs while deleting the CA certificate.
      */
-    void deleteCACertificate(String certificateId, String tenantDomain) throws X509ConfigurationException;
-
-    /**
-     * Add default validator configurations to the storage.
-     *
-     * @param tenantDomain Tenant Domain.
-     */
-    void addDefaultValidationConfigInRegistry(String tenantDomain);
-
-    /**
-     * Load CRL download timeout from configuration.
-     */
-    void loadCRLDownloadTimeoutFromConfig();
+    void deleteCACertificate(String certificateId, String tenantDomain) throws CertificateValidationManagementException;
 }
