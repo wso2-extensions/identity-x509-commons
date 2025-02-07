@@ -1716,15 +1716,13 @@ public class CertificateValidationUtil {
     }
 
     /**
-     * Update a certificate in the configuration store by certificate id.
+     * update the certificate in the configuration store by certificate id.
      *
-     * @param certificateId Certificate Id
-     * @param certificate   X509Certificate
-     * @param tenantDomain  Tenant Domain
-     * @return CertObject
-     * @throws CertificateValidationException Error when updating certificate
-     * @throws CertificateException           Error when encoding certificate
-     * @throws CertificateMgtException        Error when updating certificate
+     * @param certificateId certificate id.
+     * @param certificate   X509Certificate.
+     * @param tenantDomain  tenant domain.
+     * @return CertObject.
+     * @throws CertificateValidationException Error when updating certificate.
      */
     public static Optional<CertObject> updateCertificateInConfigurationStoreByCertificateId(String certificateId,
                                                                                             X509Certificate certificate,
