@@ -30,6 +30,7 @@ public class CertObject {
     private List<String> ocspUrls;
     private String certId;
     private String serialNumber;
+    private String certificatePersistedId;
 
     public List<String> getCrlUrls() {
 
@@ -69,6 +70,16 @@ public class CertObject {
     public void setSerialNumber(String serialNumber) {
 
         this.serialNumber = serialNumber;
+    }
+
+    public String getCertificatePersistedId() {
+
+        return certificatePersistedId;
+    }
+
+    public void setCertificatePersistedId(String certificatePersistedId) {
+
+        this.certificatePersistedId = certificatePersistedId;
     }
 
     @Override

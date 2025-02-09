@@ -32,6 +32,8 @@ public enum ErrorMessage {
             "No CA Certificate is configured on the given tenant %s."),
     ERROR_CERTIFICATE_DOES_NOT_EXIST("60004", "Unable to perform the operation.", "Certificate " +
             "with the id: %s does not exist in tenant %s."),
+    ERROR_CA_CERTIFICATE_ALREADY_EXISTS("60005", "Unable to perform the operation.",
+            "CA Certificate with the serial number: %s already exists in tenant %s."),
 
     // Server errors.
     ERROR_WHILE_RETRIEVING_VALIDATORS("65001", "Error while retrieving validators.",
@@ -49,7 +51,13 @@ public enum ErrorMessage {
     ERROR_WHILE_RETRIEVING_CA_CERTIFICATE_BY_ID("65007", "Unable to perform the operation.",
             "Error while retrieving CA Certificate by ID %s from tenant %s."),
     ERROR_WHILE_DELETING_CA_CERTIFICATE("65008", "Error while deleting CA Certificate.", "Error " +
-            "while deleting CA Certificate from the system.");
+            "while deleting CA Certificate from the system."),
+    ERROR_WHILE_ADDING_VALIDATORS("65009", "Error while adding Validator.",
+            "Error while persisting Validator in the tenant %s."),
+    ERROR_WHILE_RETIREVING_CA_CERTIFICATE_BY_ISSUER("65010", "Unable to perform the operation.",
+            "Error while retrieving CA Certificate by issuer %s from tenant %s."),
+    ERROR_WHILE_ADDING_CA_CERTIFICATES("65011", "Error while adding CA Certificates.",
+            "Error while persisting CA Certificates in the tenant %s.");
 
     private final String code;
     private final String message;
