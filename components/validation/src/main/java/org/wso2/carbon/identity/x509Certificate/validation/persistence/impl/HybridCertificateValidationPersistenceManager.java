@@ -23,7 +23,10 @@ import static org.wso2.carbon.identity.x509Certificate.validation.constant.error
 import static org.wso2.carbon.identity.x509Certificate.validation.constant.error.ErrorMessage.ERROR_NO_CA_CERTIFICATES_CONFIGURED_ON_TENANT;
 import static org.wso2.carbon.identity.x509Certificate.validation.constant.error.ErrorMessage.ERROR_NO_VALIDATORS_CONFIGURED_ON_TENANT;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.x509Certificate.validation.exception.CertificateValidationManagementException;
 import org.wso2.carbon.identity.x509Certificate.validation.model.CACertificate;
 import org.wso2.carbon.identity.x509Certificate.validation.model.CACertificateInfo;
@@ -36,6 +39,7 @@ import org.wso2.carbon.identity.x509Certificate.validation.persistence.Certifica
  */
 public class HybridCertificateValidationPersistenceManager implements CertificateValidationPersistenceManager {
 
+    private static final Log LOG = LogFactory.getLog(HybridCertificateValidationPersistenceManager.class);
     private final JDBCCertificateValidationPersistenceManager jdbcCertificateValidationPersistenceManager =
             new JDBCCertificateValidationPersistenceManager();
     private final RegistryCertificateValidationPersistenceManager registryCertificateValidationPersistenceManager =
@@ -86,16 +90,11 @@ public class HybridCertificateValidationPersistenceManager implements Certificat
     @Override
     public List<Validator> getValidators(String tenantDomain) throws CertificateValidationManagementException {
 
-
-        try {
-            return jdbcCertificateValidationPersistenceManager.getValidators(tenantDomain);
-        } catch (CertificateValidationManagementException e) {
-            if (ERROR_NO_VALIDATORS_CONFIGURED_ON_TENANT.getCode().equals(e.getErrorCode())) {
-                return registryCertificateValidationPersistenceManager.getValidators(tenantDomain);
-            } else {
-                throw e;
-            }
+        List<Validator> validators = jdbcCertificateValidationPersistenceManager.getValidators(tenantDomain);
+        if (validators.isEmpty()) {
+            validators = registryCertificateValidationPersistenceManager.getValidators(tenantDomain);
         }
+        return validators;
     }
 
     @Override
@@ -104,7 +103,7 @@ public class HybridCertificateValidationPersistenceManager implements Certificat
         try {
             return jdbcCertificateValidationPersistenceManager.getValidator(name, tenantDomain);
         } catch (CertificateValidationManagementException e) {
-            if (ERROR_INVALID_VALIDATOR_NAME.getCode().equals(e.getErrorCode())) {
+            if (!ERROR_INVALID_VALIDATOR_NAME.getCode().equals(e.getErrorCode())) {
                 return registryCertificateValidationPersistenceManager.getValidator(name, tenantDomain);
             } else {
                 throw e;
@@ -119,7 +118,7 @@ public class HybridCertificateValidationPersistenceManager implements Certificat
         try {
             return jdbcCertificateValidationPersistenceManager.updateValidator(validator, tenantDomain);
         } catch (CertificateValidationManagementException e) {
-            if (ERROR_INVALID_VALIDATOR_NAME.getCode().equals(e.getErrorCode())) {
+            if (!ERROR_INVALID_VALIDATOR_NAME.getCode().equals(e.getErrorCode())) {
                 return registryCertificateValidationPersistenceManager.updateValidator(validator, tenantDomain);
             } else {
                 throw e;
@@ -131,9 +130,17 @@ public class HybridCertificateValidationPersistenceManager implements Certificat
     public List<CACertificateInfo> getCACertificates(String tenantDomain)
             throws CertificateValidationManagementException {
 
-        List<CACertificateInfo> caCertificates =
-                jdbcCertificateValidationPersistenceManager.getCACertificates(tenantDomain);
-        caCertificates.addAll(registryCertificateValidationPersistenceManager.getCACertificates(tenantDomain));
+        List<CACertificateInfo> caCertificates = new ArrayList<>();
+        try {
+            caCertificates.addAll(jdbcCertificateValidationPersistenceManager.getCACertificates(tenantDomain));
+        } catch (CertificateValidationManagementException e) {
+            LOG.debug("Error occurred while getting CA certificates from JDBC persistence manager.", e);
+        }
+        try {
+            caCertificates.addAll(registryCertificateValidationPersistenceManager.getCACertificates(tenantDomain));
+        } catch (CertificateValidationManagementException e) {
+            LOG.debug("Error occurred while getting CA certificates from Registry persistence manager.", e);
+        }
         return caCertificates;
     }
 
@@ -166,11 +173,14 @@ public class HybridCertificateValidationPersistenceManager implements Certificat
             return jdbcCertificateValidationPersistenceManager.updateCACertificate(certificateId, encodedCertificate,
                     tenantDomain);
         } catch (CertificateValidationManagementException e) {
-            if (ERROR_CERTIFICATE_DOES_NOT_EXIST.getCode().equals(e.getErrorCode())) {
+            try {
                 return registryCertificateValidationPersistenceManager.updateCACertificate(certificateId,
                         encodedCertificate, tenantDomain);
-            } else {
-                throw e;
+            } catch (CertificateValidationManagementException ex) {
+                if (ERROR_CERTIFICATE_DOES_NOT_EXIST.getCode().equals(e.getErrorCode())) {
+                    throw e;
+                }
+                throw ex;
             }
         }
     }
