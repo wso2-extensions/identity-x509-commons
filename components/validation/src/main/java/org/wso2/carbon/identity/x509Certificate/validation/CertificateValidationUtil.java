@@ -126,6 +126,7 @@ import org.wso2.carbon.identity.x509Certificate.validation.persistence.Certifica
 import org.wso2.carbon.identity.x509Certificate.validation.persistence.CertificateValidationPersistenceManagerFactory;
 import org.wso2.carbon.identity.x509Certificate.validation.validator.RevocationValidator;
 import org.wso2.carbon.registry.core.Resource;
+import org.wso2.carbon.registry.core.ResourceImpl;
 import org.wso2.carbon.utils.CarbonUtils;
 import org.wso2.carbon.utils.ServerConstants;
 import org.wso2.carbon.utils.security.KeystoreUtils;
@@ -177,8 +178,7 @@ public class CertificateValidationUtil {
                     addDefaultCACertificates(trustStoresElement, validatorChildElement, tenantDomain);
                 }
 
-            } catch (XMLStreamException | FileNotFoundException | CertificateValidationException |
-                     CertificateValidationManagementException e) {
+            } catch (XMLStreamException | FileNotFoundException | CertificateValidationManagementException e) {
                 log.warn("Error while loading default validator configurations.", e);
             } finally {
                 try {
@@ -318,7 +318,7 @@ public class CertificateValidationUtil {
     public static Validator resourceToValidatorObject(Resource resource) {
 
         Validator validator = new Validator();
-        validator.setName(resource.getProperty(VALIDATOR_CONF_NAME));
+        validator.setDisplayName(((ResourceImpl)resource).getName());
         validator.setEnabled(Boolean.parseBoolean(resource.getProperty(VALIDATOR_CONF_ENABLE)));
         validator.setPriority(Integer.parseInt(resource.getProperty(VALIDATOR_CONF_PRIORITY)));
         validator.setFullChainValidationEnabled(

@@ -78,326 +78,6 @@ public class RegistryCertificateValidationPersistenceManager implements Certific
     private static final Log LOG = LogFactory.getLog(RegistryCertificateValidationPersistenceManager.class);
     private static final String REGISTRY_PATH_SEPARATOR = "/";
 
-    public static Registry getGovernanceRegistry(String tenantDomain) throws CertificateValidationException {
-
-        Registry registry;
-        try {
-            registry = CertValidationDataHolder.getInstance().getRegistryService().getGovernanceSystemRegistry(
-                    CertValidationDataHolder.getInstance().getRealmService().getTenantManager()
-                            .getTenantId(tenantDomain));
-        } catch (UserStoreException | RegistryException e) {
-            throw new CertificateValidationException("Error while get tenant registry.", e);
-        }
-        return registry;
-    }
-
-    private static List<CACertificate> getCACertsFromRegResource(String caRegPath) throws RegistryException,
-            CertificateValidationException {
-
-        List<CACertificate> caCertificateList = new ArrayList<>();
-        //get tenant registry for loading validator configurations
-        Registry registry = getGovernanceRegistry(
-                PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain());
-
-        if (registry.resourceExists(caRegPath)) {
-            Collection collection = (Collection) registry.get(caRegPath);
-            if (collection != null) {
-                String[] children = collection.getChildren();
-                for (String child : children) {
-                    Resource resource = registry.get(child);
-                    CACertificate caCertificate = resourceToCACertObject(resource);
-                    caCertificateList.add(caCertificate);
-                }
-            }
-        }
-        return caCertificateList;
-    }
-
-    private static List<Validator> getValidatorsFromRegistryResource(Registry registry,
-                                                                     String validatorConfRegPath)
-            throws RegistryException {
-
-        List<Validator> validators = new ArrayList<>();
-        Collection collection = (Collection) registry.get(validatorConfRegPath);
-        if (collection != null) {
-            String[] children = collection.getChildren();
-            for (String child : children) {
-                Resource resource = registry.get(child);
-                validators.add(resourceToValidatorObject(resource));
-            }
-        }
-
-        return validators;
-    }
-
-    private static Validator getEnabledValidatorFromRegistryResource(Registry registry, String validatorConfRegPath)
-            throws RegistryException {
-
-        Resource resource = registry.get(validatorConfRegPath);
-        return resourceToValidatorObject(resource);
-    }
-
-    private static Validator updateValidatorInRegistryResource(Registry registry, String validatorConfRegPath,
-                                                               Validator validator)
-            throws RegistryException {
-
-        Resource resource = registry.get(validatorConfRegPath);
-
-        resource.setProperty(VALIDATOR_CONF_ENABLE, Boolean.toString(validator.isEnabled()));
-        resource.setProperty(VALIDATOR_CONF_PRIORITY, Integer.toString(validator.getPriority()));
-        resource.setProperty(VALIDATOR_CONF_FULL_CHAIN_VALIDATION,
-                Boolean.toString(validator.isFullChainValidationEnabled()));
-        resource.setProperty(VALIDATOR_CONF_RETRY_COUNT, Integer.toString(validator.getRetryCount()));
-        registry.put(validatorConfRegPath, resource);
-        return validator;
-    }
-
-    private static CACertificate addCACertificateInRegistry(Registry registry, String caCertRegPath,
-                                                            X509Certificate certificate,
-                                                            List<Validator> validators)
-            throws CertificateValidationException {
-
-        List<String> ocspUrls = new ArrayList<>();
-        List<String> crlUrls = new ArrayList<>();
-        try {
-            boolean isSelfSignedCert = isSelfSignedCert(certificate);
-            for (Validator validator : validators) {
-                if (validator.isEnabled()) {
-                    if (OCSP_VALIDATOR.equals(validator.getDisplayName()) &&
-                            !isSelfSignedCert) {
-                        ocspUrls = getAIALocations(certificate);
-                    } else if (CRL_VALIDATOR.equals(validator.getDisplayName()) &&
-                            !isSelfSignedCert) {
-                        crlUrls = getCRLUrls(certificate);
-                    }
-                }
-            }
-            Resource resource = registry.newResource();
-            StringBuilder crlUrlReg = new StringBuilder();
-            if (CollectionUtils.isNotEmpty(crlUrls)) {
-                for (String crlUrl : crlUrls) {
-                    crlUrlReg.append(crlUrl).append(CA_CERT_REG_CRL_OCSP_SEPERATOR);
-                }
-            }
-
-            StringBuilder ocspUrlReg = new StringBuilder();
-            if (CollectionUtils.isNotEmpty(ocspUrls)) {
-                for (String ocspUrl : ocspUrls) {
-                    ocspUrlReg.append(ocspUrl).append(CA_CERT_REG_CRL_OCSP_SEPERATOR);
-                }
-            }
-            resource.addProperty(CA_CERT_REG_CRL, crlUrlReg.toString());
-            resource.addProperty(CA_CERT_REG_OCSP, ocspUrlReg.toString());
-            resource.addProperty(CERTFICATE_ID, generateCertificateHash(certificate));
-            resource.setContent(encodeCertificate(certificate));
-            registry.put(caCertRegPath, resource);
-            return new CACertificate(crlUrls, ocspUrls, certificate);
-        } catch (RegistryException e) {
-            throw new CertificateValidationException("Error adding default ca certificate with serial num:" +
-                    certificate.getSerialNumber() + " in registry.", e);
-        } catch (CertificateException | NoSuchAlgorithmException e) {
-            throw new CertificateValidationException("Error encoding ca certificate with serial num: " + certificate
-                    .getSerialNumber() + " to add in registry.", e);
-        }
-    }
-
-    private static CACertificate getCACertificateFromRegistry(Registry registry, String certificateId)
-            throws CertificateValidationException, RegistryException, CertificateException, NoSuchAlgorithmException,
-            CertificateValidationManagementClientException {
-
-        if (!registry.resourceExists(CA_CERT_REG_PATH)) {
-            throw new CertificateValidationException("No CA certificates found in registry.");
-        }
-
-        Collection collection = (Collection) registry.get(CA_CERT_REG_PATH);
-        if (collection == null) {
-            throw new CertificateValidationException("Invalid registry collection.");
-        }
-
-        for (String childPath : collection.getChildren()) {
-            Resource resource = registry.get(childPath);
-            String storedCertId = resource.getProperty(CERTFICATE_ID);
-
-            if (storedCertId == null) {
-                X509Certificate storedCert = decodeCertificate(new String((byte[]) resource.getContent()));
-                storedCertId = generateCertificateHash(storedCert);
-            }
-            if (certificateId.equalsIgnoreCase(storedCertId)) {
-                return resourceToCACertObject(resource);
-            }
-        }
-        throw CertificateValidationManagementExceptionHandler.handleClientException
-                (ERROR_CERTIFICATE_DOES_NOT_EXIST, certificateId,
-                        PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain());
-    }
-
-    private static CACertificate updateCACertificateInRegistry(Registry registry, String caCertRegPath,
-                                                               X509Certificate certificate, List<Validator> validators,
-                                                               String certificateId)
-            throws CertificateValidationException, RegistryException, CertificateException, NoSuchAlgorithmException {
-
-        if (!registry.resourceExists(CA_CERT_REG_PATH)) {
-            throw new CertificateValidationException("No CA certificates found in registry.");
-        }
-
-        Collection collection = (Collection) registry.get(CA_CERT_REG_PATH);
-        if (collection == null) {
-            throw new CertificateValidationException("Invalid registry collection.");
-        }
-
-        boolean certificateExists = false;
-
-        for (String childPath : collection.getChildren()) {
-            Resource resource = registry.get(childPath);
-            X509Certificate storedCert = decodeCertificate(new String((byte[]) resource.getContent()));
-
-            String storedCertId = generateCertificateHash(storedCert);
-            if (!certificateId.equalsIgnoreCase(storedCertId)) {
-                continue; // Skip non-matching certificates
-            }
-
-            certificateExists = true;
-
-            if (storedCert.getIssuerX500Principal().equals(certificate.getIssuerX500Principal())) {
-                if (storedCert.getSerialNumber().equals(certificate.getSerialNumber())) {
-                    // Update the certificate
-                    updateCertificateResource(registry, caCertRegPath, certificate, validators);
-                    return new CACertificate(getCRLUrls(certificate), getAIALocations(certificate), certificate);
-                } else {
-                    // Delete old certificate with same issuer but different serial number
-                    registry.delete(childPath);
-                    break;
-                }
-            }
-        }
-
-        // If certificate exists but was not updated (because serials didn't match)
-        if (certificateExists) {
-            updateCertificateResource(registry, caCertRegPath, certificate, validators);
-            return new CACertificate(getCRLUrls(certificate), getAIALocations(certificate), certificate);
-        }
-
-        throw new CertificateValidationException("Certificate with serial number: " + certificate.getSerialNumber() +
-                " does not exist in the registry.");
-    }
-
-    private static void updateCertificateResource(Registry registry, String caCertRegPath,
-                                                  X509Certificate certificate, List<Validator> validators)
-            throws RegistryException, CertificateException, CertificateValidationException {
-
-        boolean isSelfSigned = isSelfSignedCert(certificate);
-        List<String> crlUrls = new ArrayList<>();
-        List<String> ocspUrls = new ArrayList<>();
-
-        for (Validator validator : validators) {
-            if (!validator.isEnabled() || isSelfSigned) {
-                continue;
-            }
-
-            if (OCSP_VALIDATOR.equals(validator.getDisplayName())) {
-                ocspUrls = getAIALocations(certificate);
-            } else if (CRL_VALIDATOR.equals(validator.getDisplayName())) {
-                crlUrls = getCRLUrls(certificate);
-            }
-        }
-
-        // Create a new registry resource
-        Resource resource = registry.newResource();
-        resource.addProperty(CA_CERT_REG_CRL, String.join(CA_CERT_REG_CRL_OCSP_SEPERATOR, crlUrls));
-        resource.addProperty(CA_CERT_REG_OCSP, String.join(CA_CERT_REG_CRL_OCSP_SEPERATOR, ocspUrls));
-        resource.setContent(encodeCertificate(certificate));
-
-        registry.put(caCertRegPath, resource);
-    }
-
-    private static boolean deleteCertificateById(Registry registry, String certificateHash)
-            throws RegistryException, CertificateException, NoSuchAlgorithmException {
-
-        if (!registry.resourceExists(CA_CERT_REG_PATH)) {
-            LOG.warn("No CA certificates found in registry.");
-            return false;
-        }
-
-        Collection collection = (Collection) registry.get(CA_CERT_REG_PATH);
-        if (collection == null || collection.getChildren().length == 0) {
-            LOG.warn("No certificates available in the registry.");
-            return false;
-        }
-
-        for (String childPath : collection.getChildren()) {
-            Resource resource = registry.get(childPath);
-            X509Certificate storedCert = decodeCertificate(new String((byte[]) resource.getContent()));
-
-            String storedCertId = generateCertificateHash(storedCert);
-            if (certificateHash.equalsIgnoreCase(storedCertId)) {
-                registry.delete(childPath);
-                LOG.debug("Deleted certificate with id (hash): " + certificateHash);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static String getCACertsRegPathByIssuer(String issuerDN) throws UnsupportedEncodingException {
-
-        return CA_CERT_REG_PATH + PATH_SEPARATOR + URLEncoder.encode(issuerDN, "UTF-8").replaceAll("%", ":");
-    }
-
-    private static void addValidatorsToRegistry(Registry registry, List<Validator> validators, String tenantDomain)
-            throws RegistryException {
-
-        for (Validator validator : validators) {
-            String validatorConfRegPath =
-                    VALIDATOR_CONF_REG_PATH + PATH_SEPARATOR + getNormalizedName(validator.getDisplayName());
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Adding default validator configurations to registry in: " +
-                        validatorConfRegPath);
-            }
-            try {
-                if (!registry.resourceExists(validatorConfRegPath)) {
-                    addValidatorConfigInRegistry(registry, validatorConfRegPath, validator);
-                    if (LOG.isDebugEnabled()) {
-                        LOG.debug(String.format("Validator configuration for %s is added to %s tenant registry.",
-                                validator.getDisplayName(), tenantDomain));
-                    }
-                }
-            } catch (RegistryException e) {
-                LOG.error("Error while adding validator configurations in registry.", e);
-            }
-        }
-    }
-
-    private static void addValidatorConfigInRegistry(Registry registry, String validatorConfRegPath,
-                                                     Validator validator) throws RegistryException {
-
-        Resource resource = registry.newResource();
-        resource.addProperty(VALIDATOR_CONF_NAME, validator.getName());
-        resource.addProperty(VALIDATOR_CONF_ENABLE, Boolean.toString(validator.isEnabled()));
-        resource.addProperty(VALIDATOR_CONF_PRIORITY, Integer.toString(validator.getPriority()));
-        resource.addProperty(VALIDATOR_CONF_FULL_CHAIN_VALIDATION,
-                Boolean.toString(validator.isFullChainValidationEnabled()));
-        resource.addProperty(VALIDATOR_CONF_RETRY_COUNT, Integer.toString(validator.getRetryCount()));
-        registry.put(validatorConfRegPath, resource);
-    }
-
-    public static CACertificate resourceToCACertObject(Resource resource) throws CertificateValidationException {
-
-        List<String> crlUrls;
-        List<String> ocspUrls;
-        X509Certificate x509Certificate;
-        try {
-            String crlUrlReg = resource.getProperty(CA_CERT_REG_CRL);
-            String ocspUrlReg = resource.getProperty(CA_CERT_REG_OCSP);
-            crlUrls = Arrays.asList(crlUrlReg.split(CA_CERT_REG_CRL_OCSP_SEPERATOR));
-            ocspUrls = Arrays.asList(ocspUrlReg.split(CA_CERT_REG_CRL_OCSP_SEPERATOR));
-            byte[] regContent = (byte[]) resource.getContent();
-            x509Certificate = decodeCertificate(new String(regContent));
-        } catch (RegistryException | CertificateException e) {
-            throw new CertificateValidationException("Error when converting registry resource content.", e);
-        }
-        return new CACertificate(crlUrls, ocspUrls, x509Certificate);
-    }
-
     @Override
     public List<Validator> getValidators(String tenantDomain) throws CertificateValidationManagementException {
 
@@ -441,7 +121,8 @@ public class RegistryCertificateValidationPersistenceManager implements Certific
 
         try {
             Registry registry = getGovernanceRegistry(tenantDomain);
-            String validatorConfRegPath = VALIDATOR_CONF_REG_PATH + REGISTRY_PATH_SEPARATOR + validator.getName();
+            String validatorConfRegPath =
+                    VALIDATOR_CONF_REG_PATH + REGISTRY_PATH_SEPARATOR + validator.getDisplayName();
             if (registry.resourceExists(validatorConfRegPath)) {
                 LOG.debug("Validator configurations are available in registry path: " + validatorConfRegPath);
                 return updateValidatorInRegistryResource(registry, validatorConfRegPath, validator);
@@ -465,28 +146,36 @@ public class RegistryCertificateValidationPersistenceManager implements Certific
             if (registry.resourceExists(caRegPath)) {
                 LOG.debug("CA Certificate configurations are available in registry path: " + caRegPath);
                 List<CACertificateInfo> caCertificateList = new ArrayList<>();
-                Collection collection = (Collection) registry.get(caRegPath);
-                if (collection != null) {
-                    String[] children = collection.getChildren();
-                    for (String child : children) {
-                        Resource resource = registry.get(child);
-                        CACertificate caCertificate = resourceToCACertObject(resource);
-                        X509Certificate x509Cert = caCertificate.getX509Certificate();
+                Collection issuerCollection = (Collection) registry.get(caRegPath);
+                if (issuerCollection != null) {
+                    String[] childrenList1 = issuerCollection.getChildren();
+                    for (String issuer : childrenList1) {
+                        Collection certificateCollection = (Collection) registry.get(issuer);
+                        if (certificateCollection != null) {
+                            String[] childrenList2 = certificateCollection.getChildren();
+                            for (String certChild : childrenList2) {
+                                Resource certResource = registry.get(certChild);
+                                CACertificate caCertificate = resourceToCACertObject(certResource);
+                                X509Certificate x509Cert = caCertificate.getX509Certificate();
 
-                        String certId = resource.getProperty(CERTFICATE_ID);
+                                String certId = certResource.getProperty(CERTFICATE_ID);
 
-                        if (certId == null) {
-                            certId = generateCertificateHash(x509Cert);
+                                if (certId == null) {
+                                    certId = generateCertificateHash(x509Cert);
+                                }
+
+                                CACertificateInfo caCertificateInfo = new CACertificateInfo();
+                                caCertificateInfo.setCertId(certId);
+                                caCertificateInfo.setIssuerDN(
+                                        getNormalizedName(x509Cert.getIssuerDN().getName()));
+                                caCertificateInfo.setSerialNumber(
+                                        getNormalizedName(x509Cert.getSerialNumber().toString(16))); // Use Hex
+                                caCertificateInfo.setCrlUrls(caCertificate.getCrlUrl());
+                                caCertificateInfo.setOcspUrls(caCertificate.getOcspUrl());
+
+                                caCertificateList.add(caCertificateInfo);
+                            }
                         }
-
-                        CACertificateInfo caCertificateInfo = new CACertificateInfo();
-                        caCertificateInfo.setCertId(certId);
-                        caCertificateInfo.setIssuerDN(getNormalizedName(x509Cert.getIssuerX500Principal().getName()));
-                        caCertificateInfo.setSerialNumber(getNormalizedName(x509Cert.getSerialNumber().toString(16))); // Use Hex
-                        caCertificateInfo.setCrlUrls(caCertificate.getCrlUrl());
-                        caCertificateInfo.setOcspUrls(caCertificate.getOcspUrl());
-
-                        caCertificateList.add(caCertificateInfo);
                     }
                 }
                 return caCertificateList;
@@ -640,5 +329,339 @@ public class RegistryCertificateValidationPersistenceManager implements Certific
                         (ErrorMessage.ERROR_WHILE_ADDING_CA_CERTIFICATES, e, tenantDomain);
             }
         }
+    }
+
+    public static Registry getGovernanceRegistry(String tenantDomain) throws CertificateValidationException {
+
+        Registry registry;
+        try {
+            registry = CertValidationDataHolder.getInstance().getRegistryService().getGovernanceSystemRegistry(
+                    CertValidationDataHolder.getInstance().getRealmService().getTenantManager()
+                            .getTenantId(tenantDomain));
+        } catch (UserStoreException | RegistryException e) {
+            throw new CertificateValidationException("Error while get tenant registry.", e);
+        }
+        return registry;
+    }
+
+    private static List<CACertificate> getCACertsFromRegResource(String caRegPath) throws RegistryException,
+            CertificateValidationException {
+
+        List<CACertificate> caCertificateList = new ArrayList<>();
+        //get tenant registry for loading validator configurations
+        Registry registry = getGovernanceRegistry(
+                PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain());
+
+        if (registry.resourceExists(caRegPath)) {
+            Collection collection = (Collection) registry.get(caRegPath);
+            if (collection != null) {
+                String[] children = collection.getChildren();
+                for (String child : children) {
+                    Resource resource = registry.get(child);
+                    CACertificate caCertificate = resourceToCACertObject(resource);
+                    caCertificateList.add(caCertificate);
+                }
+            }
+        }
+        return caCertificateList;
+    }
+
+    private static List<Validator> getValidatorsFromRegistryResource(Registry registry,
+                                                                     String validatorConfRegPath)
+            throws RegistryException {
+
+        List<Validator> validators = new ArrayList<>();
+        Collection collection = (Collection) registry.get(validatorConfRegPath);
+        if (collection != null) {
+            String[] children = collection.getChildren();
+            for (String child : children) {
+                Resource resource = registry.get(child);
+                validators.add(resourceToValidatorObject(resource));
+            }
+        }
+
+        return validators;
+    }
+
+    private static Validator getEnabledValidatorFromRegistryResource(Registry registry, String validatorConfRegPath)
+            throws RegistryException {
+
+        Resource resource = registry.get(validatorConfRegPath);
+        return resourceToValidatorObject(resource);
+    }
+
+    private static Validator updateValidatorInRegistryResource(Registry registry, String validatorConfRegPath,
+                                                               Validator validator)
+            throws RegistryException {
+
+        Resource resource = registry.get(validatorConfRegPath);
+
+        resource.setProperty(VALIDATOR_CONF_ENABLE, Boolean.toString(validator.isEnabled()));
+        resource.setProperty(VALIDATOR_CONF_PRIORITY, Integer.toString(validator.getPriority()));
+        resource.setProperty(VALIDATOR_CONF_FULL_CHAIN_VALIDATION,
+                Boolean.toString(validator.isFullChainValidationEnabled()));
+        resource.setProperty(VALIDATOR_CONF_RETRY_COUNT, Integer.toString(validator.getRetryCount()));
+        registry.put(validatorConfRegPath, resource);
+        return validator;
+    }
+
+    private static CACertificate addCACertificateInRegistry(Registry registry, String caCertRegPath,
+                                                            X509Certificate certificate,
+                                                            List<Validator> validators)
+            throws CertificateValidationException {
+
+        List<String> ocspUrls = new ArrayList<>();
+        List<String> crlUrls = new ArrayList<>();
+        try {
+            boolean isSelfSignedCert = isSelfSignedCert(certificate);
+            for (Validator validator : validators) {
+                if (validator.isEnabled()) {
+                    if (OCSP_VALIDATOR.equals(validator.getDisplayName()) &&
+                            !isSelfSignedCert) {
+                        ocspUrls = getAIALocations(certificate);
+                    } else if (CRL_VALIDATOR.equals(validator.getDisplayName()) &&
+                            !isSelfSignedCert) {
+                        crlUrls = getCRLUrls(certificate);
+                    }
+                }
+            }
+            Resource resource = registry.newResource();
+            StringBuilder crlUrlReg = new StringBuilder();
+            if (CollectionUtils.isNotEmpty(crlUrls)) {
+                for (String crlUrl : crlUrls) {
+                    crlUrlReg.append(crlUrl).append(CA_CERT_REG_CRL_OCSP_SEPERATOR);
+                }
+            }
+
+            StringBuilder ocspUrlReg = new StringBuilder();
+            if (CollectionUtils.isNotEmpty(ocspUrls)) {
+                for (String ocspUrl : ocspUrls) {
+                    ocspUrlReg.append(ocspUrl).append(CA_CERT_REG_CRL_OCSP_SEPERATOR);
+                }
+            }
+            resource.addProperty(CA_CERT_REG_CRL, crlUrlReg.toString());
+            resource.addProperty(CA_CERT_REG_OCSP, ocspUrlReg.toString());
+            resource.addProperty(CERTFICATE_ID, generateCertificateHash(certificate));
+            resource.setContent(encodeCertificate(certificate));
+            registry.put(caCertRegPath, resource);
+            return new CACertificate(crlUrls, ocspUrls, certificate);
+        } catch (RegistryException e) {
+            throw new CertificateValidationException("Error adding default ca certificate with serial num:" +
+                    certificate.getSerialNumber() + " in registry.", e);
+        } catch (CertificateException | NoSuchAlgorithmException e) {
+            throw new CertificateValidationException("Error encoding ca certificate with serial num: " + certificate
+                    .getSerialNumber() + " to add in registry.", e);
+        }
+    }
+
+    private static CACertificate getCACertificateFromRegistry(Registry registry, String certificateId)
+            throws CertificateValidationException, RegistryException, CertificateException, NoSuchAlgorithmException,
+            CertificateValidationManagementClientException {
+
+        if (!registry.resourceExists(CA_CERT_REG_PATH)) {
+            throw new CertificateValidationException("No CA certificates found in registry.");
+        }
+
+        Collection collection = (Collection) registry.get(CA_CERT_REG_PATH);
+        if (collection == null) {
+            throw new CertificateValidationException("Invalid registry collection.");
+        }
+
+        for (String childPath : collection.getChildren()) {
+            Collection childCollection = (Collection) registry.get(childPath);
+            if (childCollection != null) {
+                for (String child : childCollection.getChildren()) {
+                    Resource resource = registry.get(child);
+                    String storedCertId = resource.getProperty(CERTFICATE_ID);
+
+                    if (storedCertId == null) {
+                        X509Certificate storedCert = decodeCertificate(new String((byte[]) resource.getContent()));
+                        storedCertId = generateCertificateHash(storedCert);
+                    }
+                    if (certificateId.equalsIgnoreCase(storedCertId)) {
+                        return resourceToCACertObject(resource);
+                    }
+                }
+            }
+        }
+        throw CertificateValidationManagementExceptionHandler.handleClientException
+                (ERROR_CERTIFICATE_DOES_NOT_EXIST, certificateId,
+                        PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain());
+    }
+
+    private static CACertificate updateCACertificateInRegistry(Registry registry, String caCertRegPath,
+                                                               X509Certificate certificate, List<Validator> validators,
+                                                               String certificateId)
+            throws CertificateValidationException, RegistryException, CertificateException, NoSuchAlgorithmException {
+
+        if (!registry.resourceExists(CA_CERT_REG_PATH)) {
+            throw new CertificateValidationException("No CA certificates found in registry.");
+        }
+
+        Collection collection = (Collection) registry.get(CA_CERT_REG_PATH);
+        if (collection == null) {
+            throw new CertificateValidationException("Invalid registry collection.");
+        }
+
+        boolean certificateExists = false;
+
+        for (String childPath : collection.getChildren()) {
+            Collection childCollection = (Collection) registry.get(childPath);
+            if (childCollection != null) {
+                for (String child : childCollection.getChildren()) {
+                    Resource resource = registry.get(child);
+                    X509Certificate storedCert = decodeCertificate(new String((byte[]) resource.getContent()));
+
+                    String storedCertId = generateCertificateHash(storedCert);
+                    if (!certificateId.equalsIgnoreCase(storedCertId)) {
+                        continue; // Skip non-matching certificates
+                    }
+
+                    certificateExists = true;
+
+                    if (storedCert.getIssuerDN().getName().equals(certificate.getIssuerDN().getName())) {
+                        if (storedCert.getSerialNumber().equals(certificate.getSerialNumber())) {
+                            // Update the certificate
+                            return updateCertificateResource(registry, caCertRegPath, certificate, validators);
+                        } else {
+                            // Delete old certificate with same issuer but different serial number
+                            registry.delete(child);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // If certificate exists but was not updated (because serials didn't match)
+        if (certificateExists) {
+            return updateCertificateResource(registry, caCertRegPath, certificate, validators);
+        }
+
+        throw new CertificateValidationException("Certificate with serial number: " + certificate.getSerialNumber() +
+                " does not exist in the registry.");
+    }
+
+    private static CACertificate updateCertificateResource(Registry registry, String caCertRegPath,
+                                                  X509Certificate certificate, List<Validator> validators)
+            throws RegistryException, CertificateException, CertificateValidationException {
+
+        boolean isSelfSigned = isSelfSignedCert(certificate);
+        List<String> crlUrls = new ArrayList<>();
+        List<String> ocspUrls = new ArrayList<>();
+
+        for (Validator validator : validators) {
+            if (!validator.isEnabled() || isSelfSigned) {
+                continue;
+            }
+
+            if (OCSP_VALIDATOR.equals(validator.getDisplayName())) {
+                ocspUrls = getAIALocations(certificate);
+            } else if (CRL_VALIDATOR.equals(validator.getDisplayName())) {
+                crlUrls = getCRLUrls(certificate);
+            }
+        }
+
+        // Create a new registry resource
+        Resource resource = registry.newResource();
+        resource.addProperty(CA_CERT_REG_CRL, String.join(CA_CERT_REG_CRL_OCSP_SEPERATOR, crlUrls));
+        resource.addProperty(CA_CERT_REG_OCSP, String.join(CA_CERT_REG_CRL_OCSP_SEPERATOR, ocspUrls));
+        resource.setContent(encodeCertificate(certificate));
+
+        registry.put(caCertRegPath, resource);
+        return new CACertificate(crlUrls, ocspUrls, certificate);
+    }
+
+    private static boolean deleteCertificateById(Registry registry, String certificateHash)
+            throws RegistryException, CertificateException, NoSuchAlgorithmException {
+
+        if (!registry.resourceExists(CA_CERT_REG_PATH)) {
+            LOG.warn("No CA certificates found in registry.");
+            return false;
+        }
+
+        Collection collection = (Collection) registry.get(CA_CERT_REG_PATH);
+        if (collection == null || collection.getChildren().length == 0) {
+            LOG.warn("No certificates available in the registry.");
+            return false;
+        }
+
+        for (String childPath : collection.getChildren()) {
+            Collection childCollection = (Collection) registry.get(childPath);
+            if (childCollection != null) {
+                for (String child : childCollection.getChildren()) {
+                    Resource resource = registry.get(child);
+                    X509Certificate storedCert = decodeCertificate(new String((byte[]) resource.getContent()));
+
+                    String storedCertId = generateCertificateHash(storedCert);
+                    if (certificateHash.equalsIgnoreCase(storedCertId)) {
+                        registry.delete(childPath);
+                        LOG.debug("Deleted certificate with id (hash): " + certificateHash);
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private static String getCACertsRegPathByIssuer(String issuerDN) throws UnsupportedEncodingException {
+
+        return CA_CERT_REG_PATH + PATH_SEPARATOR + URLEncoder.encode(issuerDN, "UTF-8").replaceAll("%", ":");
+    }
+
+    private static void addValidatorsToRegistry(Registry registry, List<Validator> validators, String tenantDomain)
+            throws RegistryException {
+
+        for (Validator validator : validators) {
+            String validatorConfRegPath =
+                    VALIDATOR_CONF_REG_PATH + PATH_SEPARATOR + getNormalizedName(validator.getDisplayName());
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Adding default validator configurations to registry in: " +
+                        validatorConfRegPath);
+            }
+            try {
+                if (!registry.resourceExists(validatorConfRegPath)) {
+                    addValidatorConfigInRegistry(registry, validatorConfRegPath, validator);
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug(String.format("Validator configuration for %s is added to %s tenant registry.",
+                                validator.getDisplayName(), tenantDomain));
+                    }
+                }
+            } catch (RegistryException e) {
+                LOG.error("Error while adding validator configurations in registry.", e);
+            }
+        }
+    }
+
+    private static void addValidatorConfigInRegistry(Registry registry, String validatorConfRegPath,
+                                                     Validator validator) throws RegistryException {
+
+        Resource resource = registry.newResource();
+        resource.addProperty(VALIDATOR_CONF_NAME, validator.getName());
+        resource.addProperty(VALIDATOR_CONF_ENABLE, Boolean.toString(validator.isEnabled()));
+        resource.addProperty(VALIDATOR_CONF_PRIORITY, Integer.toString(validator.getPriority()));
+        resource.addProperty(VALIDATOR_CONF_FULL_CHAIN_VALIDATION,
+                Boolean.toString(validator.isFullChainValidationEnabled()));
+        resource.addProperty(VALIDATOR_CONF_RETRY_COUNT, Integer.toString(validator.getRetryCount()));
+        registry.put(validatorConfRegPath, resource);
+    }
+
+    public static CACertificate resourceToCACertObject(Resource resource) throws CertificateValidationException {
+
+        List<String> crlUrls;
+        List<String> ocspUrls;
+        X509Certificate x509Certificate;
+        try {
+            String crlUrlReg = resource.getProperty(CA_CERT_REG_CRL);
+            String ocspUrlReg = resource.getProperty(CA_CERT_REG_OCSP);
+            crlUrls = Arrays.asList(crlUrlReg.split(CA_CERT_REG_CRL_OCSP_SEPERATOR));
+            ocspUrls = Arrays.asList(ocspUrlReg.split(CA_CERT_REG_CRL_OCSP_SEPERATOR));
+            byte[] regContent = (byte[]) resource.getContent();
+            x509Certificate = decodeCertificate(new String(regContent));
+        } catch (RegistryException | CertificateException e) {
+            throw new CertificateValidationException("Error when converting registry resource content.", e);
+        }
+        return new CACertificate(crlUrls, ocspUrls, x509Certificate);
     }
 }

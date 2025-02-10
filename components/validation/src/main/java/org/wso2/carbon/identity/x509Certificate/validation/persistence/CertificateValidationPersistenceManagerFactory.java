@@ -49,17 +49,17 @@ public class CertificateValidationPersistenceManagerFactory {
 
         CertificateValidationPersistenceManager certificateValidationPersistenceManager;
         if (REGISTRY.equals(X509_CERTIFICATE_STORAGE_TYPE)) {
-            LOG.warn("Registry based KeyStore persistence manager was initialized");
+            LOG.warn("Registry based certificate validation persistence manager was initialized.");
             certificateValidationPersistenceManager = new RegistryCertificateValidationPersistenceManager();
         } else if (HYBRID.equals(X509_CERTIFICATE_STORAGE_TYPE)) {
-            LOG.info("Hybrid KeyStore persistence manager was initialized");
+            LOG.info("Hybrid certificate validation persistence manager was initialized.");
             certificateValidationPersistenceManager = new HybridCertificateValidationPersistenceManager();
         } else {
             certificateValidationPersistenceManager = new JDBCCertificateValidationPersistenceManager();
         }
 
         if (LOG.isDebugEnabled()) {
-            LOG.debug("KeyStore Persistence Manager initialized with the type: " +
+            LOG.debug("Certificate validation persistence manager was initialized with the type: " +
                     certificateValidationPersistenceManager.getClass());
         }
         return certificateValidationPersistenceManager;

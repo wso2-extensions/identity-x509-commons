@@ -40,7 +40,6 @@ import static org.wso2.carbon.identity.x509Certificate.validation.X509Certificat
 import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.X509_CA_CERT_FILE;
 import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.X509_CA_CERT_RESOURCE_TYPE;
 import static org.wso2.carbon.identity.x509Certificate.validation.X509CertificateValidationConstants.X509_CERT_PREFIX;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -106,8 +105,8 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
 
         try {
             addCACertificateInConfigurationStore(validators, trustedCertificates, tenantDomain);
-        } catch (CertificateValidationException | JsonProcessingException | CertificateMgtException |
-                 CertificateException e) {
+        } catch (CertificateValidationException | CertificateMgtException | CertificateException | IOException |
+                 NoSuchAlgorithmException e) {
             throw CertificateValidationManagementExceptionHandler
                     .handleServerException(ErrorMessage.ERROR_WHILE_ADDING_CA_CERTIFICATES, e, tenantDomain);
         }
@@ -237,12 +236,10 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
                         .handleClientException(ErrorMessage.ERROR_CERTIFICATE_DOES_NOT_EXIST, certificateId,
                                 tenantDomain);
             }
-            X509Certificate updatedCertificate = updateCACertificateInCertificateManager(certificateId,
-                    certificate, tenantDomain);
             CACertificateInfo caCertificateInfo = new CACertificateInfo();
-            caCertificateInfo.setCertId(certificateId);
-            caCertificateInfo.setIssuerDN(getNormalizedName(updatedCertificate.getIssuerDN().getName()));
-            caCertificateInfo.setSerialNumber(getNormalizedName(updatedCertificate.getSerialNumber().toString()));
+            caCertificateInfo.setCertId(certObject.get().getCertId());
+            caCertificateInfo.setIssuerDN(getNormalizedName(certificate.getIssuerDN().getName()));
+            caCertificateInfo.setSerialNumber(getNormalizedName(certificate.getSerialNumber().toString()));
             caCertificateInfo.setCrlUrls(certObject.get().getCrlUrls());
             caCertificateInfo.setOcspUrls(certObject.get().getOcspUrls());
             return caCertificateInfo;
@@ -296,7 +293,7 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
             throws CertificateValidationException {
 
         try {
-            org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource =
+            Resource resource =
                     CertValidationDataHolder.getInstance().getConfigurationManager()
                             .getResourceByTenantId(IdentityTenantUtil.getTenantId(tenantDomain),
                                     X509_CA_CERT_RESOURCE_TYPE, CERTS);
@@ -313,9 +310,7 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
         }
     }
 
-    private static InputStream getResourceFileInputStream
-            (org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource)
-            throws ConfigurationManagementException {
+    private static InputStream getResourceFileInputStream(Resource resource) throws ConfigurationManagementException {
 
         List<ResourceFile> resourceFiles = resource.getFiles();
         if (resourceFiles == null || resourceFiles.isEmpty()) {
@@ -346,7 +341,7 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
 
         Certificate certificate = CertValidationDataHolder.getInstance()
                 .getCertificateManagementService()
-                .getCertificate(certObject.getCertId(), tenantDomain);
+                .getCertificate(certObject.getCertificatePersistedId(), tenantDomain);
         X509Certificate x509Certificate = decodeCertificate(certificate.getCertificateContent());
 
         return getCACertificateInfo(x509Certificate, certObject);
@@ -362,7 +357,7 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
     private static CACertificateInfo getCACertificateInfo(X509Certificate caCertificate, CertObject certObject) {
 
         CACertificateInfo caCertificateInfo = new CACertificateInfo();
-        caCertificateInfo.setCertId(certObject.getCertificatePersistedId());
+        caCertificateInfo.setCertId(certObject.getCertId());
         caCertificateInfo.setIssuerDN(getNormalizedName(caCertificate.getIssuerDN().getName()));
         caCertificateInfo.setSerialNumber(getNormalizedName(caCertificate.getSerialNumber().toString()));
         caCertificateInfo.setCrlUrls(certObject.getCrlUrls());
@@ -417,7 +412,7 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
             throws CertificateValidationException {
 
         try {
-            org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource =
+            Resource resource =
                     CertValidationDataHolder.getInstance().getConfigurationManager().getResourceByTenantId
                             (IdentityTenantUtil.getTenantId(tenantDomain), X509_CA_CERT_RESOURCE_TYPE, CERTS);
             List<ResourceFile> resourceFiles = resource.getFiles();
@@ -453,7 +448,8 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
                 if (certObject.isPresent()) {
                     return Optional.of(new CACertificate(certObject.get().getCrlUrls(),
                             certObject.get().getOcspUrls(),
-                            getCACertificateFromCertificateManager(certificateId, tenantDomain)));
+                            getCACertificateFromCertificateManager(certObject.get().getCertificatePersistedId(),
+                                    tenantDomain)));
                 }
             }
             return Optional.empty();
@@ -492,12 +488,10 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
      * @param resource The resource object to convert.
      * @return A Validator object populated with resource attributes.
      */
-    private static Validator resourceToValidatorObject(
-            org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource) {
+    private static Validator resourceToValidatorObject(Resource resource) {
 
         Validator validator = new Validator();
 
-        // Extract attributes from the resource.
         List<Attribute> attributes = resource.getAttributes();
         validator.setDisplayName(resource.getResourceName());
         if (attributes != null) {
@@ -542,7 +536,7 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
             throws CertificateValidationException {
 
         try {
-            org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource =
+            Resource resource =
                     CertValidationDataHolder.getInstance().getConfigurationManager()
                             .getResourceByTenantId(IdentityTenantUtil.getTenantId(tenantDomain),
                                     VALIDATOR_RESOURCE_TYPE, validator.getDisplayName());
@@ -550,7 +544,7 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
                 return Optional.empty();
             }
             createAttributeList(validator, resource);
-            org.wso2.carbon.identity.configuration.mgt.core.model.Resource updatedResource =
+            Resource updatedResource =
                     CertValidationDataHolder.getInstance().getConfigurationManager()
                             .replaceResource(VALIDATOR_RESOURCE_TYPE, resource);
             return Optional.of(resourceToValidatorObject(updatedResource));
@@ -571,10 +565,9 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
             throws CertificateValidationException {
 
         try {
-            org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource =
-                    CertValidationDataHolder.getInstance().getConfigurationManager()
-                            .getResourceByTenantId(IdentityTenantUtil.getTenantId(tenantDomain),
-                                    VALIDATOR_RESOURCE_TYPE, name);
+            Resource resource = CertValidationDataHolder.getInstance().getConfigurationManager()
+                    .getResourceByTenantId(IdentityTenantUtil.getTenantId(tenantDomain),
+                            VALIDATOR_RESOURCE_TYPE, name);
             if (resource == null) {
                 return Optional.empty();
             }
@@ -632,7 +625,7 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
             throws CertificateValidationException {
 
         try {
-            org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource = CertValidationDataHolder
+            Resource resource = CertValidationDataHolder
                     .getInstance().getConfigurationManager()
                     .getResourceByTenantId(IdentityTenantUtil.getTenantId(tenantDomain),
                             X509_CA_CERT_RESOURCE_TYPE, CERTS);
@@ -675,27 +668,32 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
             List<CertObject> certList = issuerDNMap.getIssuerCertMap().getOrDefault(issuerDN, new ArrayList<>());
             int certIndex = -1;
 
+            CertObject existingCertObject = null;
             // Check if the certId exists within this issuer
             for (int i = 0; i < certList.size(); i++) {
                 if (certList.get(i).getCertId().equals(certificateId)) {
                     certIndex = i;
+                    existingCertObject = certList.get(i);
                     break;
                 }
             }
 
             // Create an updated CertObject
             CertObject updatedCertObject = new CertObject();
-            updatedCertObject.setCertId(generateCertificateHash(certificate));
-            updatedCertObject.setCertificatePersistedId(certificateId);
+            updatedCertObject.setCertId(certificateId);
             updatedCertObject.setSerialNumber(serialNumber);
             updatedCertObject.setCrlUrls(crlUrls);
             updatedCertObject.setOcspUrls(ocspUrls);
 
-            if (certIndex != -1) {
+            if (existingCertObject != null) {
                 // Case 2: Cert ID exists under the same issuer → Update the certificate
+                updatedCertObject.setCertificatePersistedId(existingCertObject.getCertificatePersistedId());
+                updateCACertificateInCertificateManager(certificateId, certificate, tenantDomain);
                 certList.set(certIndex, updatedCertObject);
             } else {
                 // Case 3: Cert ID does not exist under this issuer → Add as a new cert
+                String certPersistedId = addCertificateToManagementService(certificate, tenantDomain);
+                updatedCertObject.setCertificatePersistedId(certPersistedId);
                 certList.add(updatedCertObject);
 
                 // Case 4: Remove the cert from the previous issuer (if different)
@@ -718,7 +716,7 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
 
             saveUpdatedResource(resource, issuerDNMap);
             return Optional.of(updatedCertObject);
-        } catch (ConfigurationManagementException | IOException | NoSuchAlgorithmException e) {
+        } catch (ConfigurationManagementException | IOException | CertificateMgtException | CertificateException e) {
             throw new CertificateValidationException("Error while processing the resource", e);
         }
     }
@@ -760,10 +758,9 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
             throws CertificateValidationException {
 
         try {
-            org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource =
-                    CertValidationDataHolder.getInstance().getConfigurationManager()
-                            .getResourceByTenantId(IdentityTenantUtil.getTenantId(tenantDomain),
-                                    X509_CA_CERT_RESOURCE_TYPE, CERTS);
+            Resource resource = CertValidationDataHolder.getInstance().getConfigurationManager()
+                    .getResourceByTenantId(IdentityTenantUtil.getTenantId(tenantDomain),
+                            X509_CA_CERT_RESOURCE_TYPE, CERTS);
             InputStream inputStream = getResourceFileInputStream(resource);
             if (inputStream == null) {
                 return Optional.empty();
@@ -852,6 +849,7 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
     private static CertObject createCertObject(X509Certificate certificate, String certId, String serialNumber,
                                                List<String> ocspUrls, List<String> crlUrls)
             throws NoSuchAlgorithmException {
+
         CertObject certObject = new CertObject();
         certObject.setCertId(generateCertificateHash(certificate));
         certObject.setCertificatePersistedId(certId);
@@ -863,6 +861,7 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
 
     private static void addCertObjectToIssuerDNMap(IssuerDNMap issuerDNMap, String issuerDN, CertObject certObject,
                                                    String serialNumber) throws CertificateValidationException {
+
         List<CertObject> certList = issuerDNMap.getIssuerCertMap().computeIfAbsent(issuerDN, k -> new ArrayList<>());
         boolean serialExists = certList.stream()
                 .anyMatch(cert -> getNormalizedName(cert.getSerialNumber()).equals(serialNumber));
@@ -915,8 +914,7 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
         addResource(resource);
     }
 
-    private static void saveUpdatedResource(org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource,
-                                            IssuerDNMap issuerDNMap)
+    private static void saveUpdatedResource(Resource resource, IssuerDNMap issuerDNMap)
             throws IOException, ConfigurationManagementException {
 
         String serializedContent = ModelSerializer.serializeIssuerDNMap(issuerDNMap);
@@ -933,13 +931,13 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
 
     private static void addValidatorsToConfigurationStore(List<Validator> defaultValidatorConfig)
             throws CertificateValidationException {
+
         for (Validator validator : defaultValidatorConfig) {
             String displayName = validator.getDisplayName();
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Adding the configurations for validator: " + displayName);
             }
-
-            org.wso2.carbon.identity.configuration.mgt.core.model.Resource validatorResource =
+            Resource validatorResource =
                     buildResourceFromValidator(validator, getNormalizedName(displayName));
             addResource(validatorResource);
         }
@@ -952,20 +950,16 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
      * @param resourceName Resource name.
      * @return A new Resource object with the validator's properties.
      */
-    private static org.wso2.carbon.identity.configuration.mgt.core.model.Resource buildResourceFromValidator(
-            Validator validator, String resourceName) {
+    private static Resource buildResourceFromValidator(Validator validator, String resourceName) {
 
-        org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource =
-                new org.wso2.carbon.identity.configuration.mgt.core.model.Resource(resourceName,
-                        VALIDATOR_RESOURCE_TYPE);
+        Resource resource = new Resource(resourceName, VALIDATOR_RESOURCE_TYPE);
         resource.setHasAttribute(true);
         createAttributeList(validator, resource);
 
         return resource;
     }
 
-    private static void createAttributeList(Validator validator,
-                                            org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource) {
+    private static void createAttributeList(Validator validator, Resource resource) {
 
         List<Attribute> attributes = new ArrayList<>();
         attributes.add(new Attribute(VALIDATOR_CONF_NAME, validator.getName()));
@@ -983,7 +977,8 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
     private static void addCACertificateInConfigurationStore(List<Validator> validators,
                                                              List<X509Certificate> trustedCertificates,
                                                              String tenantDomain) throws
-            CertificateValidationException, CertificateException, CertificateMgtException, JsonProcessingException {
+            CertificateValidationException, CertificateException, CertificateMgtException, IOException,
+            NoSuchAlgorithmException {
 
         Map<String, List<CertObject>> issuerDNMap = new HashMap<>();
         for (X509Certificate certificate : trustedCertificates) {
@@ -1025,7 +1020,8 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
                     .addCertificate(cert, tenantDomain);
 
             CertObject certObject = new CertObject();
-            certObject.setCertId(certId);
+            certObject.setCertId(generateCertificateHash(certificate));
+            certObject.setCertificatePersistedId(certId);
             certObject.setSerialNumber(serialNumber);
             certObject.setCrlUrls(crlUrls);
             certObject.setOcspUrls(ocspUrls);
@@ -1041,27 +1037,40 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
         }
 
         String serializedContent = ModelSerializer.serializeIssuerDNMap(combinedIssuerDNMap);
-
         InputStream inputStream = new ByteArrayInputStream(serializedContent.getBytes(StandardCharsets.UTF_8));
+        try {
+            Resource existingResource = CertValidationDataHolder.getInstance()
+                    .getConfigurationManager()
+                    .getResource(X509_CA_CERT_RESOURCE_TYPE, CERTS);
 
-        ResourceFile resourceFile = new ResourceFile();
-        resourceFile.setName(X509_CA_CERT_FILE);
-        resourceFile.setInputStream(inputStream);
+            if (existingResource != null) {
+                saveUpdatedResource(existingResource, combinedIssuerDNMap);
+            }
 
-        org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource =
-                new org.wso2.carbon.identity.configuration.mgt.core.model.Resource(CERTS, X509_CA_CERT_RESOURCE_TYPE);
-        resource.setHasFile(true);
-        resource.setFiles(new ArrayList<>());
-        resource.getFiles().add(resourceFile);
+        } catch (ConfigurationManagementException e) {
+            if (ERROR_CODE_RESOURCE_DOES_NOT_EXISTS.getCode().equals(e.getErrorCode())) {
+                ResourceFile resourceFile = new ResourceFile();
+                resourceFile.setName(X509_CA_CERT_FILE);
+                resourceFile.setInputStream(inputStream);
 
-        // Add the resource to the configuration store
-        addResource(resource);
+                Resource resource =
+                        new Resource(CERTS, X509_CA_CERT_RESOURCE_TYPE);
+                resource.setHasFile(true);
+                resource.setFiles(new ArrayList<>());
+                resource.getFiles().add(resourceFile);
+                addResource(resource);
+            } else {
+                throw new CertificateValidationException("Error while adding validator configurations.", e);
+            }
+        }
+
+
     }
 
     private static List<CACertificate> getCACertsFromConfigStore(String issuerDN)
             throws CertificateValidationException, ConfigurationManagementException {
 
-        org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource = CertValidationDataHolder.getInstance()
+        Resource resource = CertValidationDataHolder.getInstance()
                 .getConfigurationManager()
                 .getResource(X509_CA_CERT_RESOURCE_TYPE, CERTS);
 
@@ -1130,9 +1139,7 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
      * @param resource The resource object to add.
      * @throws CertificateValidationException If an error occurs while adding the resource.
      */
-    private static void addResource(
-            org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource)
-            throws CertificateValidationException {
+    private static void addResource(Resource resource) throws CertificateValidationException {
 
         try {
             CertValidationDataHolder.getInstance().getConfigurationManager()
@@ -1147,6 +1154,7 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
     }
 
     private static String convertInputStreamToString(InputStream inputStream) throws IOException {
+
         StringBuilder stringBuilder = new StringBuilder();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
             String line;

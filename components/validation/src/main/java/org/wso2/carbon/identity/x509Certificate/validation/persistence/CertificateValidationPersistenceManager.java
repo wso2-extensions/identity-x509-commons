@@ -51,6 +51,14 @@ public interface CertificateValidationPersistenceManager {
     void addCACertificates(List<Validator> validators, List<X509Certificate> trustedCertificates,
                            String tenantDomain) throws CertificateValidationManagementException;
 
+    /**
+     * Get CA Certificates by issuer.
+     *
+     * @param issuerDN     Issuer DN.
+     * @param tenantDomain Tenant Domain.
+     * @return List of CA certificates.
+     * @throws CertificateValidationManagementException If an error occurs while getting the CA certificates.
+     */
     List<CACertificate> getCACertsByIssuer(String issuerDN, String tenantDomain)
             throws CertificateValidationManagementException;
 

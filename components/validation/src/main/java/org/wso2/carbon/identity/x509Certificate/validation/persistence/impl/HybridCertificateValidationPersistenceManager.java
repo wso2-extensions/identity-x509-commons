@@ -19,6 +19,8 @@
 package org.wso2.carbon.identity.x509Certificate.validation.persistence.impl;
 
 import static org.wso2.carbon.identity.x509Certificate.validation.constant.error.ErrorMessage.ERROR_CERTIFICATE_DOES_NOT_EXIST;
+import static org.wso2.carbon.identity.x509Certificate.validation.constant.error.ErrorMessage.ERROR_INVALID_VALIDATOR_NAME;
+import static org.wso2.carbon.identity.x509Certificate.validation.constant.error.ErrorMessage.ERROR_NO_VALIDATORS_CONFIGURED_ON_TENANT;
 import java.security.cert.X509Certificate;
 import java.util.List;
 import org.wso2.carbon.identity.x509Certificate.validation.exception.CertificateValidationManagementException;
@@ -66,20 +68,45 @@ public class HybridCertificateValidationPersistenceManager implements Certificat
     @Override
     public List<Validator> getValidators(String tenantDomain) throws CertificateValidationManagementException {
 
-        return registryCertificateValidationPersistenceManager.getValidators(tenantDomain);
+
+        try {
+            return jdbcCertificateValidationPersistenceManager.getValidators(tenantDomain);
+        } catch (CertificateValidationManagementException e) {
+            if (ERROR_NO_VALIDATORS_CONFIGURED_ON_TENANT.getCode().equals(e.getErrorCode())) {
+                return registryCertificateValidationPersistenceManager.getValidators(tenantDomain);
+            } else {
+                throw e;
+            }
+        }
     }
 
     @Override
     public Validator getValidator(String name, String tenantDomain) throws CertificateValidationManagementException {
 
-        return registryCertificateValidationPersistenceManager.getValidator(name, tenantDomain);
+        try {
+            return jdbcCertificateValidationPersistenceManager.getValidator(name, tenantDomain);
+        } catch (CertificateValidationManagementException e) {
+            if (ERROR_INVALID_VALIDATOR_NAME.getCode().equals(e.getErrorCode())) {
+                return registryCertificateValidationPersistenceManager.getValidator(name, tenantDomain);
+            } else {
+                throw e;
+            }
+        }
     }
 
     @Override
     public Validator updateValidator(Validator validator, String tenantDomain)
             throws CertificateValidationManagementException {
 
-        return registryCertificateValidationPersistenceManager.updateValidator(validator, tenantDomain);
+        try {
+            return jdbcCertificateValidationPersistenceManager.updateValidator(validator, tenantDomain);
+        } catch (CertificateValidationManagementException e) {
+            if (ERROR_INVALID_VALIDATOR_NAME.getCode().equals(e.getErrorCode())) {
+                return registryCertificateValidationPersistenceManager.updateValidator(validator, tenantDomain);
+            } else {
+                throw e;
+            }
+        }
     }
 
     @Override
