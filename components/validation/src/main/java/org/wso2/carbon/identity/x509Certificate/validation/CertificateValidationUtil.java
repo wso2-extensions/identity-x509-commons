@@ -318,7 +318,7 @@ public class CertificateValidationUtil {
     public static Validator resourceToValidatorObject(Resource resource) {
 
         Validator validator = new Validator();
-        validator.setDisplayName(((ResourceImpl)resource).getName());
+        validator.setDisplayName(((ResourceImpl) resource).getName());
         validator.setEnabled(Boolean.parseBoolean(resource.getProperty(VALIDATOR_CONF_ENABLE)));
         validator.setPriority(Integer.parseInt(resource.getProperty(VALIDATOR_CONF_PRIORITY)));
         validator.setFullChainValidationEnabled(
@@ -1053,11 +1053,11 @@ public class CertificateValidationUtil {
     }
 
     /**
-     * Generate a certificate hash to identify a certificate uniquely.
+     * Generate a hash value for the given certificate.
      *
      * @param cert X509Certificate
-     * @return String
-     * @throws Exception Error when generating certificate hash
+     * @return hash value of the certificate
+     * @throws NoSuchAlgorithmException NoSuchAlgorithmException
      */
     public static String generateCertificateHash(X509Certificate cert) throws NoSuchAlgorithmException {
 
