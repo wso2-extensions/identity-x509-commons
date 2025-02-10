@@ -24,7 +24,9 @@ import static org.wso2.carbon.identity.x509Certificate.validation.constant.error
 import static org.wso2.carbon.identity.x509Certificate.validation.constant.error.ErrorMessage.ERROR_NO_VALIDATORS_CONFIGURED_ON_TENANT;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.x509Certificate.validation.exception.CertificateValidationManagementException;
@@ -131,17 +133,28 @@ public class HybridCertificateValidationPersistenceManager implements Certificat
             throws CertificateValidationManagementException {
 
         List<CACertificateInfo> caCertificates = new ArrayList<>();
+        Set<String> uniqueCertIds = new HashSet<>();
+
         try {
             caCertificates.addAll(jdbcCertificateValidationPersistenceManager.getCACertificates(tenantDomain));
         } catch (CertificateValidationManagementException e) {
             LOG.debug("Error occurred while getting CA certificates from JDBC persistence manager.", e);
         }
+
         try {
             caCertificates.addAll(registryCertificateValidationPersistenceManager.getCACertificates(tenantDomain));
         } catch (CertificateValidationManagementException e) {
             LOG.debug("Error occurred while getting CA certificates from Registry persistence manager.", e);
         }
-        return caCertificates;
+
+        List<CACertificateInfo> uniqueCACertificates = new ArrayList<>();
+        for (CACertificateInfo certInfo : caCertificates) {
+            if (uniqueCertIds.add(certInfo.getCertId())) {
+                uniqueCACertificates.add(certInfo);
+            }
+        }
+
+        return uniqueCACertificates;
     }
 
     @Override
