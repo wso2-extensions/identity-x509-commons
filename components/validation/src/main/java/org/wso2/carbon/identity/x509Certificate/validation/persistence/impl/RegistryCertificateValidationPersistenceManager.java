@@ -87,8 +87,7 @@ public class RegistryCertificateValidationPersistenceManager implements Certific
                 LOG.debug("Validator configurations are available in registry path: " + VALIDATOR_CONF_REG_PATH);
                 return getValidatorsFromRegistryResource(registry, VALIDATOR_CONF_REG_PATH);
             } else {
-                throw CertificateValidationManagementExceptionHandler
-                        .handleClientException(ErrorMessage.ERROR_NO_VALIDATORS_CONFIGURED_ON_TENANT);
+                return new ArrayList<>();
             }
         } catch (RegistryException | CertificateValidationException e) {
             throw CertificateValidationManagementExceptionHandler.handleServerException
@@ -246,8 +245,7 @@ public class RegistryCertificateValidationPersistenceManager implements Certific
 
     @Override
     public CACertificateInfo updateCACertificate(String certificateId, String encodedCertificate, String tenantDomain)
-            throws
-            CertificateValidationManagementException {
+            throws CertificateValidationManagementException {
 
         try {
             Registry registry = getGovernanceRegistry(tenantDomain);
