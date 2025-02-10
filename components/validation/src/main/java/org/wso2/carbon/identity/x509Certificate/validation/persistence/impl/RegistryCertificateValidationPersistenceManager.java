@@ -179,12 +179,10 @@ public class RegistryCertificateValidationPersistenceManager implements Certific
                 }
                 return caCertificateList;
             } else {
-                throw CertificateValidationManagementExceptionHandler.handleClientException
-                        (ErrorMessage.ERROR_NO_CA_CERTIFICATES_CONFIGURED_ON_TENANT);
+                return new ArrayList<>();
             }
         } catch (CertificateValidationException | RegistryException | NoSuchAlgorithmException e) {
-            throw CertificateValidationManagementExceptionHandler.handleServerException
-                    (ErrorMessage.ERROR_WHILE_RETRIEVING_CA_CERTIFICATES, e);
+            return new ArrayList<>();
         }
     }
 
@@ -211,7 +209,8 @@ public class RegistryCertificateValidationPersistenceManager implements Certific
                 return caCertificateInfo;
             } else {
                 throw CertificateValidationManagementExceptionHandler.handleClientException
-                        (ErrorMessage.ERROR_CA_CERTIFICATE_ALREADY_EXISTS);
+                        (ErrorMessage.ERROR_CA_CERTIFICATE_ALREADY_EXISTS, caCertificate.getSerialNumber().toString(),
+                                tenantDomain);
             }
         } catch (UnsupportedEncodingException | CertificateValidationException | RegistryException |
                  CertificateException | NoSuchAlgorithmException e) {
@@ -526,6 +525,10 @@ public class RegistryCertificateValidationPersistenceManager implements Certific
                             registry.delete(child);
                             break;
                         }
+                    } else {
+                        // Delete old certificate with different issuer
+                        registry.delete(child);
+                        break;
                     }
                 }
             }

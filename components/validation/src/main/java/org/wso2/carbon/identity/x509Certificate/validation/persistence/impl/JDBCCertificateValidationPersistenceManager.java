@@ -70,6 +70,7 @@ import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationException;
 import org.wso2.carbon.identity.x509Certificate.validation.ModelSerializer;
 import org.wso2.carbon.identity.x509Certificate.validation.constant.error.ErrorMessage;
+import org.wso2.carbon.identity.x509Certificate.validation.exception.CertificateValidationManagementClientException;
 import org.wso2.carbon.identity.x509Certificate.validation.exception.CertificateValidationManagementException;
 import org.wso2.carbon.identity.x509Certificate.validation.internal.CertValidationDataHolder;
 import org.wso2.carbon.identity.x509Certificate.validation.model.CACertificate;
@@ -118,11 +119,7 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
         try {
             return getValidatorsFromConfigStore(tenantDomain);
         } catch (ConfigurationManagementException e) {
-            if (ERROR_CODE_RESOURCES_DOES_NOT_EXISTS.getCode().equals(e.getErrorCode())) {
-                return new ArrayList<>();
-            }
-            throw CertificateValidationManagementExceptionHandler
-                    .handleServerException(ErrorMessage.ERROR_WHILE_RETRIEVING_VALIDATORS, e);
+            return new ArrayList<>();
         }
     }
 
@@ -171,8 +168,7 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
                     getCertificateListFromConfigurationStore(tenantDomain);
             return caCertificateInfoList.orElseGet(ArrayList::new);
         } catch (CertificateValidationException e) {
-            throw CertificateValidationManagementExceptionHandler
-                    .handleServerException(ErrorMessage.ERROR_WHILE_RETRIEVING_CA_CERTIFICATES, e);
+            return new ArrayList<>();
         }
     }
 
@@ -787,7 +783,8 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
     private static Optional<CertObject> addCertificateInConfigurationStore(String tenantDomain,
                                                                            X509Certificate certificate)
             throws CertificateValidationException, CertificateException, CertificateMgtException,
-            IOException, NoSuchAlgorithmException, ConfigurationManagementException {
+            IOException, NoSuchAlgorithmException, ConfigurationManagementException,
+            CertificateValidationManagementClientException {
 
         try {
             Resource resource = getResource(tenantDomain);
@@ -802,10 +799,9 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
             List<String> ocspUrls = getValidationUrls(certificate, tenantDomain, OCSP_VALIDATOR);
             List<String> crlUrls = getValidationUrls(certificate, tenantDomain, CRL_VALIDATOR);
 
-            String certId = addCertificateToManagementService(certificate, tenantDomain);
-            CertObject certObject = createCertObject(certificate, certId, serialNumber, ocspUrls, crlUrls);
+            CertObject certObject = createCertObject(certificate, null, serialNumber, ocspUrls, crlUrls);
 
-            addCertObjectToIssuerDNMap(issuerDNMap, issuerDN, certObject, serialNumber);
+            addCertObjectToIssuerDNMap(issuerDNMap, issuerDN, certObject, serialNumber, certificate, tenantDomain);
 
             saveUpdatedResource(resource, issuerDNMap);
             return Optional.of(certObject);
@@ -860,17 +856,21 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
     }
 
     private static void addCertObjectToIssuerDNMap(IssuerDNMap issuerDNMap, String issuerDN, CertObject certObject,
-                                                   String serialNumber) throws CertificateValidationException {
+                                                   String serialNumber, X509Certificate certificate,
+                                                   String tenantDomain)
+            throws CertificateException, CertificateMgtException, CertificateValidationManagementClientException {
 
         List<CertObject> certList = issuerDNMap.getIssuerCertMap().computeIfAbsent(issuerDN, k -> new ArrayList<>());
         boolean serialExists = certList.stream()
                 .anyMatch(cert -> getNormalizedName(cert.getSerialNumber()).equals(serialNumber));
 
         if (serialExists) {
-            throw new CertificateValidationException("Certificate with the serial number: " + serialNumber +
-                    " already exists for the issuerDN: " + issuerDN);
+            throw CertificateValidationManagementExceptionHandler.handleClientException(
+                    ErrorMessage.ERROR_CA_CERTIFICATE_ALREADY_EXISTS, serialNumber, tenantDomain);
         } else {
             LOG.debug("Adding new certificate with serial number: " + serialNumber + " for issuerDN: " + issuerDN);
+            String certId = addCertificateToManagementService(certificate, tenantDomain);
+            certObject.setCertificatePersistedId(certId);
             certList.add(certObject);
         }
     }
