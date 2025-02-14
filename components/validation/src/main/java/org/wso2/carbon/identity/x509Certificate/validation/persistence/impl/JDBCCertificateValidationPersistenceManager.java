@@ -18,7 +18,6 @@
 
 package org.wso2.carbon.identity.x509Certificate.validation.persistence.impl;
 
-import static org.wso2.carbon.identity.configuration.mgt.core.constant.ConfigurationConstants.ErrorMessages.ERROR_CODE_RESOURCES_DOES_NOT_EXISTS;
 import static org.wso2.carbon.identity.configuration.mgt.core.constant.ConfigurationConstants.ErrorMessages.ERROR_CODE_RESOURCE_ALREADY_EXISTS;
 import static org.wso2.carbon.identity.configuration.mgt.core.constant.ConfigurationConstants.ErrorMessages.ERROR_CODE_RESOURCE_DOES_NOT_EXISTS;
 import static org.wso2.carbon.identity.x509Certificate.validation.CertificateValidationUtil.decodeCertificate;
@@ -54,7 +53,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
@@ -1044,9 +1045,37 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
                     .getResource(X509_CA_CERT_RESOURCE_TYPE, CERTS);
 
             if (existingResource != null) {
-                saveUpdatedResource(existingResource, combinedIssuerDNMap);
-            }
+                List<ResourceFile> resourceFiles = existingResource.getFiles();
+                ResourceFile resourceFile = resourceFiles.get(0);
+                inputStream = CertValidationDataHolder.getInstance()
+                        .getConfigurationManager()
+                        .getFileById(X509_CA_CERT_RESOURCE_TYPE, CERTS, resourceFile.getId());
+                String fileContent = convertInputStreamToString(inputStream);
+                IssuerDNMap existingIssuerDNMap = ModelSerializer.deserializeIssuerDNMap(fileContent);
 
+                // Merge existingIssuerDNMap with combinedIssuerDNMap while removing duplicates
+                for (Map.Entry<String, List<CertObject>> entry : combinedIssuerDNMap.getIssuerCertMap().entrySet()) {
+                    String issuerDN = entry.getKey();
+                    List<CertObject> newCertObjects = entry.getValue();
+
+                    // Retrieve existing list or create a new one if not present
+                    List<CertObject> existingCertObjects = existingIssuerDNMap.getIssuerCertMap()
+                            .computeIfAbsent(issuerDN, k -> new ArrayList<>());
+
+                    // Collect serial numbers from existing certificates for duplicate checking
+                    Set<String> existingSerialNumbers = existingCertObjects.stream()
+                            .map(CertObject::getSerialNumber)
+                            .collect(Collectors.toSet());
+
+                    // Add only new CertObjects that do not have duplicate serial numbers
+                    for (CertObject certObject : newCertObjects) {
+                        if (!existingSerialNumbers.contains(certObject.getSerialNumber())) {
+                            existingCertObjects.add(certObject);
+                        }
+                    }
+                }
+                saveUpdatedResource(existingResource, existingIssuerDNMap);
+            }
         } catch (ConfigurationManagementException e) {
             if (ERROR_CODE_RESOURCE_DOES_NOT_EXISTS.getCode().equals(e.getErrorCode())) {
                 ResourceFile resourceFile = new ResourceFile();
