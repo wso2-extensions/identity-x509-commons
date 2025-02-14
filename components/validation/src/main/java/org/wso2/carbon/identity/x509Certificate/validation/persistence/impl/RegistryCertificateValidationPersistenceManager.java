@@ -320,8 +320,11 @@ public class RegistryCertificateValidationPersistenceManager implements Certific
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("CA certificate registry path: " + caCertRegPath);
                 }
-                addCACertificateInRegistry(getGovernanceRegistry(tenantDomain), caCertRegPath, certificate, validators);
-            } catch (UnsupportedEncodingException | CertificateValidationException e) {
+                if (!getGovernanceRegistry(tenantDomain).resourceExists(caCertRegPath)) {
+                    addCACertificateInRegistry(getGovernanceRegistry(tenantDomain), caCertRegPath, certificate,
+                            validators);
+                }
+            } catch (UnsupportedEncodingException | CertificateValidationException | RegistryException e) {
                 throw CertificateValidationManagementExceptionHandler.handleServerException
                         (ErrorMessage.ERROR_WHILE_ADDING_CA_CERTIFICATES, e, tenantDomain);
             }
@@ -544,7 +547,7 @@ public class RegistryCertificateValidationPersistenceManager implements Certific
     }
 
     private static CACertificate updateCertificateResource(Registry registry, String caCertRegPath,
-                                                  X509Certificate certificate, List<Validator> validators)
+                                                           X509Certificate certificate, List<Validator> validators)
             throws RegistryException, CertificateException, CertificateValidationException {
 
         boolean isSelfSigned = isSelfSignedCert(certificate);
