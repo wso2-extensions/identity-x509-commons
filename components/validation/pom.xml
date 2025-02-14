@@ -20,7 +20,7 @@
     <parent>
         <artifactId>org.wso2.carbon.extension.identity.x509certificate.revocation</artifactId>
         <groupId>org.wso2.carbon.extension.identity.x509certificate</groupId>
-        <version>1.1.24-SNAPSHOT</version>
+        <version>1.1.25-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
