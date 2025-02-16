@@ -90,7 +90,7 @@ public class HybridCertificateValidationPersistenceManager implements Certificat
         try {
             return jdbcCertificateValidationPersistenceManager.getValidator(name, tenantDomain);
         } catch (CertificateValidationManagementException e) {
-            if (!ERROR_INVALID_VALIDATOR_NAME.getCode().equals(e.getErrorCode())) {
+            if (ERROR_INVALID_VALIDATOR_NAME.getCode().equals(e.getErrorCode())) {
                 return registryCertificateValidationPersistenceManager.getValidator(name, tenantDomain);
             } else {
                 throw e;
@@ -105,7 +105,7 @@ public class HybridCertificateValidationPersistenceManager implements Certificat
         try {
             return jdbcCertificateValidationPersistenceManager.updateValidator(validator, tenantDomain);
         } catch (CertificateValidationManagementException e) {
-            if (!ERROR_INVALID_VALIDATOR_NAME.getCode().equals(e.getErrorCode())) {
+            if (ERROR_INVALID_VALIDATOR_NAME.getCode().equals(e.getErrorCode())) {
                 return registryCertificateValidationPersistenceManager.updateValidator(validator, tenantDomain);
             } else {
                 throw e;

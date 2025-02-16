@@ -49,6 +49,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.logging.Log;
@@ -106,7 +107,7 @@ public class RegistryCertificateValidationPersistenceManager implements Certific
                 return getEnabledValidatorFromRegistryResource(registry, validatorConfRegPath);
             } else {
                 throw CertificateValidationManagementExceptionHandler.handleClientException
-                        (ErrorMessage.ERROR_INVALID_VALIDATOR_NAME);
+                        (ErrorMessage.ERROR_INVALID_VALIDATOR_NAME, name, tenantDomain);
             }
         } catch (RegistryException | CertificateValidationException e) {
             throw CertificateValidationManagementExceptionHandler.handleServerException
@@ -127,7 +128,7 @@ public class RegistryCertificateValidationPersistenceManager implements Certific
                 return updateValidatorInRegistryResource(registry, validatorConfRegPath, validator);
             } else {
                 throw CertificateValidationManagementExceptionHandler.handleClientException
-                        (ErrorMessage.ERROR_INVALID_VALIDATOR_NAME);
+                        (ErrorMessage.ERROR_INVALID_VALIDATOR_NAME, validator.getDisplayName(), tenantDomain);
             }
         } catch (RegistryException | CertificateValidationException e) {
             throw CertificateValidationManagementExceptionHandler.handleServerException
@@ -659,8 +660,10 @@ public class RegistryCertificateValidationPersistenceManager implements Certific
         try {
             String crlUrlReg = resource.getProperty(CA_CERT_REG_CRL);
             String ocspUrlReg = resource.getProperty(CA_CERT_REG_OCSP);
-            crlUrls = Arrays.asList(crlUrlReg.split(CA_CERT_REG_CRL_OCSP_SEPERATOR));
-            ocspUrls = Arrays.asList(ocspUrlReg.split(CA_CERT_REG_CRL_OCSP_SEPERATOR));
+            crlUrls = crlUrlReg.isEmpty() ? Collections.emptyList() :
+                    Arrays.asList(crlUrlReg.split(CA_CERT_REG_CRL_OCSP_SEPERATOR));
+            ocspUrls = ocspUrlReg.isEmpty() ? Collections.emptyList() :
+                    Arrays.asList(ocspUrlReg.split(CA_CERT_REG_CRL_OCSP_SEPERATOR));
             byte[] regContent = (byte[]) resource.getContent();
             x509Certificate = decodeCertificate(new String(regContent));
         } catch (RegistryException | CertificateException e) {

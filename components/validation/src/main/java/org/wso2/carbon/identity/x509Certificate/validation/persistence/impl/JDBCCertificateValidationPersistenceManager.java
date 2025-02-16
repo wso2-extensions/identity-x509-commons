@@ -150,7 +150,7 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
             Optional<Validator> updatedValidator = updateValidatorInConfigStore(tenantDomain, validator);
             if (!updatedValidator.isPresent()) {
                 throw CertificateValidationManagementExceptionHandler
-                        .handleClientException(ErrorMessage.ERROR_INVALID_VALIDATOR_NAME, validator.getName(),
+                        .handleClientException(ErrorMessage.ERROR_INVALID_VALIDATOR_NAME, validator.getDisplayName(),
                                 tenantDomain);
             }
             return updatedValidator.get();
@@ -701,7 +701,8 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
             if (existingCertObject != null) {
                 // Case 2: Cert ID exists under the same issuer → Update the certificate
                 updatedCertObject.setCertificatePersistedId(existingCertObject.getCertificatePersistedId());
-                updateCACertificateInCertificateManager(certificateId, certificate, tenantDomain);
+                updateCACertificateInCertificateManager(updatedCertObject.getCertificatePersistedId(), certificate,
+                        tenantDomain);
                 certList.set(certIndex, updatedCertObject);
             } else {
                 // Case 3: Cert ID does not exist under this issuer → Add as a new cert
@@ -1155,14 +1156,14 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
             if (certObjects != null) {
                 for (CertObject certObject : certObjects) {
                     // Extract details from the CertObject
-                    String certId = certObject.getCertId();
                     List<String> crlUrls = certObject.getCrlUrls();
                     List<String> ocspUrls = certObject.getOcspUrls();
 
                     Certificate certificate = CertValidationDataHolder.getInstance()
                             .getCertificateManagementService()
-                            .getCertificate(certId, PrivilegedCarbonContext.getThreadLocalCarbonContext()
-                                    .getTenantDomain());
+                            .getCertificate(certObject.getCertificatePersistedId(),
+                                    PrivilegedCarbonContext.getThreadLocalCarbonContext()
+                                            .getTenantDomain());
 
                     X509Certificate x509Certificate = decodeCertificate(certificate.getCertificateContent());
 

@@ -319,6 +319,7 @@ public class CertificateValidationUtil {
 
         Validator validator = new Validator();
         validator.setDisplayName(((ResourceImpl) resource).getName());
+        validator.setName(resource.getProperty(VALIDATOR_CONF_NAME));
         validator.setEnabled(Boolean.parseBoolean(resource.getProperty(VALIDATOR_CONF_ENABLE)));
         validator.setPriority(Integer.parseInt(resource.getProperty(VALIDATOR_CONF_PRIORITY)));
         validator.setFullChainValidationEnabled(
