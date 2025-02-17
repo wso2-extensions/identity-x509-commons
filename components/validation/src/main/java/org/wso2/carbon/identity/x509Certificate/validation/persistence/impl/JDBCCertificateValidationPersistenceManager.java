@@ -150,7 +150,7 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
             Optional<Validator> updatedValidator = updateValidatorInConfigStore(tenantDomain, validator);
             if (!updatedValidator.isPresent()) {
                 throw CertificateValidationManagementExceptionHandler
-                        .handleClientException(ErrorMessage.ERROR_INVALID_VALIDATOR_NAME, validator.getName(),
+                        .handleClientException(ErrorMessage.ERROR_INVALID_VALIDATOR_NAME, validator.getDisplayName(),
                                 tenantDomain);
             }
             return updatedValidator.get();
@@ -272,7 +272,7 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
 
         try {
             return getCACertsFromConfigStore(issuerDN);
-        } catch (CertificateValidationException | ConfigurationManagementException e) {
+        } catch (CertificateValidationException e) {
             throw CertificateValidationManagementExceptionHandler
                     .handleServerException(ErrorMessage.ERROR_WHILE_RETIREVING_CA_CERTIFICATE_BY_ISSUER, e, issuerDN,
                             tenantDomain);
@@ -451,6 +451,9 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
             }
             return Optional.empty();
         } catch (ConfigurationManagementException e) {
+            if (ERROR_CODE_RESOURCE_DOES_NOT_EXISTS.getCode().equals(e.getErrorCode())) {
+                return Optional.empty();
+            }
             throw new CertificateValidationException("Error while processing the resource", e);
         } catch (IOException e) {
             throw new CertificateValidationException("Error while reading the file content", e);
@@ -546,6 +549,9 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
                             .replaceResource(VALIDATOR_RESOURCE_TYPE, resource);
             return Optional.of(resourceToValidatorObject(updatedResource));
         } catch (ConfigurationManagementException e) {
+            if (ERROR_CODE_RESOURCE_DOES_NOT_EXISTS.getCode().equals(e.getErrorCode())) {
+                return Optional.empty();
+            }
             throw new CertificateValidationException("Error while fetching validator configurations.", e);
         }
     }
@@ -570,6 +576,9 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
             }
             return Optional.of(resourceToValidatorObject(resource));
         } catch (ConfigurationManagementException e) {
+            if (ERROR_CODE_RESOURCE_DOES_NOT_EXISTS.getCode().equals(e.getErrorCode())) {
+                return Optional.empty();
+            }
             throw new CertificateValidationException("Error while fetching validator configurations.", e);
         }
     }
@@ -585,10 +594,17 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
             throws ConfigurationManagementException {
 
         List<Validator> validators = new ArrayList<>();
-        Resources resources = CertValidationDataHolder.getInstance().getConfigurationManager()
-                .getResourcesByType(IdentityTenantUtil.getTenantId(tenantDomain), VALIDATOR_RESOURCE_TYPE);
-        resources.getResources().forEach(resource -> validators.add(resourceToValidatorObject(resource)));
-        return validators;
+        try {
+            Resources resources = CertValidationDataHolder.getInstance().getConfigurationManager()
+                    .getResourcesByType(IdentityTenantUtil.getTenantId(tenantDomain), VALIDATOR_RESOURCE_TYPE);
+            resources.getResources().forEach(resource -> validators.add(resourceToValidatorObject(resource)));
+            return validators;
+        } catch (ConfigurationManagementException e) {
+            if (ERROR_CODE_RESOURCE_DOES_NOT_EXISTS.getCode().equals(e.getErrorCode())) {
+                return validators;
+            }
+            throw e;
+        }
     }
 
     private static List<String> getValidationUrls(X509Certificate certificate, String tenantDomain,
@@ -685,7 +701,8 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
             if (existingCertObject != null) {
                 // Case 2: Cert ID exists under the same issuer → Update the certificate
                 updatedCertObject.setCertificatePersistedId(existingCertObject.getCertificatePersistedId());
-                updateCACertificateInCertificateManager(certificateId, certificate, tenantDomain);
+                updateCACertificateInCertificateManager(updatedCertObject.getCertificatePersistedId(), certificate,
+                        tenantDomain);
                 certList.set(certIndex, updatedCertObject);
             } else {
                 // Case 3: Cert ID does not exist under this issuer → Add as a new cert
@@ -713,8 +730,13 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
 
             saveUpdatedResource(resource, issuerDNMap);
             return Optional.of(updatedCertObject);
-        } catch (ConfigurationManagementException | IOException | CertificateMgtException | CertificateException e) {
+        } catch (IOException | CertificateMgtException | CertificateException e) {
             throw new CertificateValidationException("Error while processing the resource", e);
+        } catch (ConfigurationManagementException e) {
+            if (ERROR_CODE_RESOURCE_DOES_NOT_EXISTS.getCode().equals(e.getErrorCode())) {
+                return Optional.empty();
+            }
+            throw new CertificateValidationException("Error while retrieving the resource", e);
         }
     }
 
@@ -1097,15 +1119,15 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
     }
 
     private static List<CACertificate> getCACertsFromConfigStore(String issuerDN)
-            throws CertificateValidationException, ConfigurationManagementException {
-
-        Resource resource = CertValidationDataHolder.getInstance()
-                .getConfigurationManager()
-                .getResource(X509_CA_CERT_RESOURCE_TYPE, CERTS);
+            throws CertificateValidationException {
 
         List<CACertificate> certificateList = new ArrayList<>();
 
         try {
+            Resource resource = CertValidationDataHolder.getInstance()
+                    .getConfigurationManager()
+                    .getResource(X509_CA_CERT_RESOURCE_TYPE, CERTS);
+
             List<ResourceFile> resourceFiles = resource.getFiles();
             if (resourceFiles == null || resourceFiles.isEmpty()) {
                 LOG.warn("Resource files are empty for certificates in tenant: " + resource.getTenantDomain());
@@ -1134,14 +1156,14 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
             if (certObjects != null) {
                 for (CertObject certObject : certObjects) {
                     // Extract details from the CertObject
-                    String certId = certObject.getCertId();
                     List<String> crlUrls = certObject.getCrlUrls();
                     List<String> ocspUrls = certObject.getOcspUrls();
 
                     Certificate certificate = CertValidationDataHolder.getInstance()
                             .getCertificateManagementService()
-                            .getCertificate(certId, PrivilegedCarbonContext.getThreadLocalCarbonContext()
-                                    .getTenantDomain());
+                            .getCertificate(certObject.getCertificatePersistedId(),
+                                    PrivilegedCarbonContext.getThreadLocalCarbonContext()
+                                            .getTenantDomain());
 
                     X509Certificate x509Certificate = decodeCertificate(certificate.getCertificateContent());
 
@@ -1153,9 +1175,15 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
             LOG.error("Error while reading the file content for IssuerDN: " + issuerDN, e);
             throw new CertificateValidationException("Error while reading the file content for IssuerDN: " +
                     issuerDN, e);
-        } catch (Exception e) {
+        } catch (CertificateException | CertificateMgtException e) {
             LOG.error("Error while processing the resource for IssuerDN: " + issuerDN, e);
             throw new CertificateValidationException("Error while processing the resource for IssuerDN: " +
+                    issuerDN, e);
+        } catch (ConfigurationManagementException e) {
+            if (ERROR_CODE_RESOURCE_DOES_NOT_EXISTS.getCode().equals(e.getErrorCode())) {
+                return certificateList;
+            }
+            throw new CertificateValidationException("Error while retrieving the resource for IssuerDN: " +
                     issuerDN, e);
         }
 
