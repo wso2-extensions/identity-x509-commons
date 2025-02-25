@@ -397,6 +397,7 @@ public class RegistryCertificateValidationPersistenceManager implements Certific
 
         Resource resource = registry.get(validatorConfRegPath);
 
+        resource.setProperty(VALIDATOR_CONF_NAME, resourceToValidatorObject(resource).getName());
         resource.setProperty(VALIDATOR_CONF_ENABLE, Boolean.toString(validator.isEnabled()));
         resource.setProperty(VALIDATOR_CONF_PRIORITY, Integer.toString(validator.getPriority()));
         resource.setProperty(VALIDATOR_CONF_FULL_CHAIN_VALIDATION,
