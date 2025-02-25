@@ -985,6 +985,9 @@ public class JDBCCertificateValidationPersistenceManager implements CertificateV
     private static void createAttributeList(Validator validator, Resource resource) {
 
         List<Attribute> attributes = new ArrayList<>();
+        if (validator.getName() == null) {
+            validator.setName(resourceToValidatorObject(resource).getName());
+        }
         attributes.add(new Attribute(VALIDATOR_CONF_NAME, validator.getName()));
         attributes.add(new Attribute(VALIDATOR_CONF_ENABLE,
                 Boolean.toString(validator.isEnabled())));
