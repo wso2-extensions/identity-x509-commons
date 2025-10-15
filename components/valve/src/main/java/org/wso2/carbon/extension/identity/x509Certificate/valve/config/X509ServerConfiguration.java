@@ -36,8 +36,10 @@ public class X509ServerConfiguration {
     private static final X509ServerConfiguration INSTANCE = new X509ServerConfiguration();
     private static final String CONFIG_ELEM_X509 = "X509";
     private static final String CONFIG_ELEM_X509_REQUEST_HEADER = "X509RequestHeaderName";
+    private static final String CONFIG_ELEM_X509_REQUEST_HEADER_ENCODED = "X509RequestHeaderEncoded";
 
     private String x509requestHeader = "X-SSL-CERT";
+    private boolean x509RequestHeaderEncoded = false;
 
     private X509ServerConfiguration() {
 
@@ -58,6 +60,16 @@ public class X509ServerConfiguration {
     public String getX509requestHeader() {
 
         return x509requestHeader;
+    }
+
+    /**
+     * Check whether the x509 request header is encoded according to the identity xml configuration value.
+     *
+     * @return true if the X509 request header is encoded
+     */
+    public boolean isX509RequestHeaderEncoded() {
+
+        return x509RequestHeaderEncoded;
     }
 
     private void buildX509ServerConfiguration() {
@@ -83,6 +95,12 @@ public class X509ServerConfiguration {
                 x509Elem.getFirstChildWithName(getQNameWithIdentityNS(CONFIG_ELEM_X509_REQUEST_HEADER));
         if (requestHeaderName != null) {
             x509requestHeader = requestHeaderName.getText().trim();
+        }
+
+        OMElement requestHeaderEncodedElem =
+                x509Elem.getFirstChildWithName(getQNameWithIdentityNS(CONFIG_ELEM_X509_REQUEST_HEADER_ENCODED));
+        if (requestHeaderEncodedElem != null) {
+            x509RequestHeaderEncoded = Boolean.parseBoolean(requestHeaderEncodedElem.getText().trim());
         }
     }
 

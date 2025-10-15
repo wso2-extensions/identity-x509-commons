@@ -30,11 +30,15 @@ import org.wso2.carbon.extension.identity.x509Certificate.valve.config.X509Serve
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import javax.servlet.ServletException;
 
 /**
@@ -91,6 +95,7 @@ public class X509CertificateAuthenticationValve extends ValveBase {
         X509Certificate certificate = null;
         String pemCert = request.getHeader(getX509RequestHeaderName());
         if (StringUtils.isNotEmpty(pemCert)) {
+            pemCert = getDecodedCertificate(pemCert);
             Matcher matcher = PATTERN.matcher(pemCert);
             if (matcher.matches()) {
                 String pemCertBody = pemCert.replaceAll(CERT_PEM_START, "").replaceAll(CERT_PEM_END, "");
@@ -108,6 +113,25 @@ public class X509CertificateAuthenticationValve extends ValveBase {
     }
 
     /**
+     * Decode the certificate based on the value of the x509RequestHeaderEncoded configuration.
+     *
+     * @param pemCert PEM formatted url-encoded certificate.
+     * @return Decoded certificate if x509RequestHeaderEncoded is true, else return the original certificate.
+     */
+    private String getDecodedCertificate(String pemCert) {
+
+        String decodedCert = pemCert;
+        if (X509ServerConfiguration.getInstance().isX509RequestHeaderEncoded()) {
+            try {
+                decodedCert = URLDecoder.decode(pemCert, StandardCharsets.UTF_8.name()).trim();
+            } catch (UnsupportedEncodingException e) {
+                log.error("Error occurred while decoding the certificate", e);
+            }
+        }
+        return decodedCert;
+    }
+
+    /**
      * Get the name of X509Certificate request header.
      *
      * @return header name
@@ -115,7 +139,6 @@ public class X509CertificateAuthenticationValve extends ValveBase {
     private String getX509RequestHeaderName() {
 
         config = X509ServerConfiguration.getInstance();
-        String x509HeaderName = config.getX509requestHeader();
-        return x509HeaderName;
+        return config.getX509requestHeader();
     }
 }
