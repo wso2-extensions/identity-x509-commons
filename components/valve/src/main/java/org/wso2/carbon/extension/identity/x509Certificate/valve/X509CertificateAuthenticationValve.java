@@ -115,7 +115,7 @@ public class X509CertificateAuthenticationValve extends ValveBase {
     /**
      * Decode the certificate based on the value of the x509RequestHeaderEncoded configuration.
      *
-     * @param pemCert PEM formatted url-encoded certificate.
+     * @param pemCert PEM formatted URL-encoded certificate.
      * @return Decoded certificate if x509RequestHeaderEncoded is true, else return the original certificate.
      */
     private String getDecodedCertificate(String pemCert) {
@@ -123,8 +123,8 @@ public class X509CertificateAuthenticationValve extends ValveBase {
         String decodedCert = pemCert;
         if (X509ServerConfiguration.getInstance().isX509RequestHeaderEncoded()) {
             try {
-                decodedCert = URLDecoder.decode(pemCert, StandardCharsets.UTF_8.name()).trim();
-            } catch (UnsupportedEncodingException e) {
+                decodedCert = URLDecoder.decode(pemCert, StandardCharsets.UTF_8).trim();
+            } catch (IllegalArgumentException e) {
                 log.error("Error occurred while decoding the certificate", e);
             }
         }

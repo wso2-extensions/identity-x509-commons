@@ -53,9 +53,9 @@ public class X509ServerConfiguration {
     }
 
     /**
-     * Get the name of the x509 request header according to the identity xml configuration value.
+     * Get the name of the X.509 request header according to the identity xml configuration value.
      *
-     * @return name of the X509 request header
+     * @return name of the X.509 request header
      */
     public String getX509requestHeader() {
 
@@ -63,9 +63,9 @@ public class X509ServerConfiguration {
     }
 
     /**
-     * Check whether the x509 request header is encoded according to the identity xml configuration value.
+     * Check whether the X.509 request header is encoded according to the identity xml configuration value.
      *
-     * @return true if the X509 request header is encoded
+     * @return true if the X.509 request header is encoded
      */
     public boolean isX509RequestHeaderEncoded() {
 
