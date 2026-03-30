@@ -228,10 +228,10 @@
     </build>
 
     <properties>
-        <carbon.identity.framework.version>7.7.106</carbon.identity.framework.version>
+        <carbon.identity.framework.version>7.10.106</carbon.identity.framework.version>
         <carbon.identity.framework.imp.pkg.version.range>[5.0.0, 8.0.0)
         </carbon.identity.framework.imp.pkg.version.range>
-        <carbon.kernel.version>4.10.22</carbon.kernel.version>
+        <carbon.kernel.version>4.12.15</carbon.kernel.version>
         <carbon.p2.plugin.version>1.5.3</carbon.p2.plugin.version>
 
         <maven.buildnumber.plugin.version>1.4</maven.buildnumber.plugin.version>

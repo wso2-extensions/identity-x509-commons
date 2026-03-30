@@ -690,7 +690,7 @@ public class CertificateValidationUtil {
 
         CRLCacheEntry crlCacheEntry = new CRLCacheEntry();
         crlCacheEntry.setX509CRL(x509CRL);
-        CRLCache.getInstance().addToCache(crlUrl, crlCacheEntry);
+        CRLCache.getInstance().addToCacheOnRead(crlUrl, crlCacheEntry);
     }
 
     /**
