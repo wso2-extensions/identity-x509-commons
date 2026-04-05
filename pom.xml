@@ -171,6 +171,11 @@
                     </configuration>
                 </plugin>
                 <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>${jacoco.version}</version>
+                </plugin>
+                <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>buildnumber-maven-plugin</artifactId>
                     <version>${maven.buildnumber.plugin.version}</version>
@@ -224,6 +229,25 @@
                     <source>1.8</source>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default-prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>default-report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
@@ -263,5 +287,6 @@
         <testng.version>7.10.1</testng.version>
         <maven.surefire.plugin.version>3.2.5</maven.surefire.plugin.version>
         <javax.servlet-api.version>4.0.0</javax.servlet-api.version>
+        <jacoco.version>0.8.12</jacoco.version>
     </properties>
 </project>
