@@ -251,7 +251,7 @@
         <commons-httpclient.wso2.osgi.version>[3.1.0,4.0.0)</commons-httpclient.wso2.osgi.version>
         <httpcomponents-httpclient.wso2.version>4.3.6.wso2v2</httpcomponents-httpclient.wso2.version>
 
-        <tomcat-coyote.version>7.0.81</tomcat-coyote.version>
+        <tomcat-coyote.version>9.0.116</tomcat-coyote.version>
 
         <imp.pkg.version.javax.servlet>2.4.0</imp.pkg.version.javax.servlet>
         <imp.pkg.version.apache.tomcat>[7.0.0, 9.0.0)</imp.pkg.version.apache.tomcat>
